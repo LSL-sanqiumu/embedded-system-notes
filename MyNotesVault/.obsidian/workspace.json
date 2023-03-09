@@ -1,0 +1,185 @@
+{
+  "main": {
+    "id": "af5e294005a49730",
+    "type": "split",
+    "children": [
+      {
+        "id": "58fc4f2b0ffcfe51",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "a0a3daa53f1c4133",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "ZK-BaseLanguage/CStart.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          }
+        ],
+        "stacked": true
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "0c972091cea73ff7",
+    "type": "split",
+    "children": [
+      {
+        "id": "faa3583bb14b8ef0",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "f071dc4468f89c9d",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical"
+              }
+            }
+          },
+          {
+            "id": "dc7fff6471de5a9e",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "tag:#s",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              }
+            }
+          },
+          {
+            "id": "1e329d302a3542fb",
+            "type": "leaf",
+            "state": {
+              "type": "starred",
+              "state": {}
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 279.5
+  },
+  "right": {
+    "id": "d64e8e0a1375eac5",
+    "type": "split",
+    "children": [
+      {
+        "id": "97540d200e753014",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "80f16ae1bffeceeb",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "ZK-BaseLanguage/CStart.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              }
+            }
+          },
+          {
+            "id": "81f8a9682ea63014",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "ZK-BaseLanguage/CStart.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              }
+            }
+          },
+          {
+            "id": "2c3e68874f26ae65",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true
+              }
+            }
+          },
+          {
+            "id": "4fd8ebd4aa2d514d",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "ZK-BaseLanguage/CStart.md"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:打开快速切换": false,
+      "graph:查看关系图谱": false,
+      "canvas:新建白板": false,
+      "daily-notes:打开/创建今天的日记": false,
+      "templates:插入模板": false,
+      "command-palette:打开命令面板": false
+    }
+  },
+  "active": "a0a3daa53f1c4133",
+  "lastOpenFiles": [
+    "templates/笔记模板.md",
+    "ZK-BaseLanguage/CStart.md",
+    "ZK/ReadMe.md",
+    "ZK/TestImage.md",
+    "ZK/Untitled.md",
+    "ZK/photos",
+    "ZK/新建文件夹",
+    "ZK/Base/test.md",
+    "files/photos/previewFix.jpg",
+    "files/photos",
+    "files/新建文件夹",
+    "ZK/photos.md",
+    "ZK/图片地址.md",
+    "ZK/ComputerBase",
+    "ZK/Base",
+    "ZK/System",
+    "ZK/ProgrammingLanguage",
+    "templates/常用笔记模板.md",
+    "未命名.canvas",
+    "ZK/test.md",
+    "ZK/第一章.md",
+    "ZK/存放所有笔记.md",
+    "ReferenceNotes/存放引用资料.md",
+    "files/存放附件、图片等.md",
+    "ZK/未命名 1.md",
+    "ZK/未命名 2.md",
+    "ZK/未命名 3.md",
+    "ZK/d1.md",
+    "ReadMe.md",
+    "templates/存放笔记模板.md",
+    "templates",
+    "files"
+  ]
+}
