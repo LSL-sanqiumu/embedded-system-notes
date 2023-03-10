@@ -4,22 +4,143 @@
     "type": "split",
     "children": [
       {
-        "id": "58fc4f2b0ffcfe51",
+        "id": "174d0d11d0d8a426",
         "type": "tabs",
         "children": [
           {
-            "id": "a0a3daa53f1c4133",
+            "id": "441e1cf3a2b19625",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "ZK-BaseLanguage/CStart.md",
+                "file": "ZK-C/C0初识C.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "b0409830d569ee22",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "ZK-C/C1开始.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "08004dddcdff4b7d",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "ZK-C/C20基本数据类型.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "93126b4ff94745da",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "ZK-C/C21整数.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "0ee6f1b4e8d15e3b",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "ZK-C/C22字符.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "2b5a89b5c467321a",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "ZK-C/C23可移植类型.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "453c5b669ae65951",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "ZK-C/C24浮点型.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "c819d94afc496573",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "ZK-C/C25sizeof().md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "d2a7a44292b0c4a3",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "ZK-C/C30字符串和常量.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "17fce9920e43c6be",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "ZK-C/C31输入输出.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "5a80d7de365667ef",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "ZK-C/C40函数.md",
                 "mode": "source",
                 "source": false
               }
             }
           }
         ],
+        "currentTab": 10,
         "stacked": true
       }
     ],
@@ -49,7 +170,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "tag:#s",
+                "query": "tag:#include",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -70,7 +191,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 279.5
+    "width": 241.5
   },
   "right": {
     "id": "d64e8e0a1375eac5",
@@ -86,7 +207,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "ZK-BaseLanguage/CStart.md",
+                "file": "ZK-C/C40函数.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -103,7 +224,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "ZK-BaseLanguage/CStart.md",
+                "file": "ZK-C/C40函数.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -126,7 +247,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "ZK-BaseLanguage/CStart.md"
+                "file": "ZK-C/C40函数.md"
               }
             }
           }
@@ -147,11 +268,31 @@
       "command-palette:打开命令面板": false
     }
   },
-  "active": "a0a3daa53f1c4133",
+  "active": "5a80d7de365667ef",
   "lastOpenFiles": [
+    "ZK-C/C31输入输出.md",
+    "ZK-C/C40函数.md",
+    "ZK-C/C30字符串和常量.md",
+    "ZK-C/C25sizeof().md",
+    "ZK-C/C24浮点型.md",
+    "ZK-C/C23可移植类型.md",
+    "ZK-C/C22字符.md",
+    "ZK-C/C21整数.md",
+    "ZK-C/C20基本数据类型.md",
+    "ZK-C/C1开始.md",
+    "ZK-C/C0初识C.md",
+    "files/2.转换说明修饰符2.png",
     "templates/笔记模板.md",
-    "ZK-BaseLanguage/CStart.md",
+    "files/2.转换说明修饰符.png",
+    "ZK-C/C26数据类型-使用.md",
     "ZK/ReadMe.md",
+    "files/1.编译与链接.png",
+    "ZK-BaseLanguage/C1开始.md",
+    "ZK-BaseLanguage/C0初识C.md",
+    "ZK-BaseLanguage/C2基本数据类型.md",
+    "ZK-BaseLanguage/2023-03-10.md",
+    "未命名.canvas",
+    "ZK-BaseLanguage/images/1.编译与链接.png",
     "ZK/TestImage.md",
     "ZK/Untitled.md",
     "ZK/photos",
@@ -167,18 +308,8 @@
     "ZK/System",
     "ZK/ProgrammingLanguage",
     "templates/常用笔记模板.md",
-    "未命名.canvas",
     "ZK/test.md",
     "ZK/第一章.md",
-    "ZK/存放所有笔记.md",
-    "ReferenceNotes/存放引用资料.md",
-    "files/存放附件、图片等.md",
-    "ZK/未命名 1.md",
-    "ZK/未命名 2.md",
-    "ZK/未命名 3.md",
-    "ZK/d1.md",
-    "ReadMe.md",
-    "templates/存放笔记模板.md",
     "templates",
     "files"
   ]
