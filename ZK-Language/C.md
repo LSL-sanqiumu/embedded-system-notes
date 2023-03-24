@@ -197,14 +197,14 @@ int main(){
 }
 ```
 
-2、数值的表示方式，科学技术法或进制表示法：
+2、数值的表示方式，科学计数法或进制表示法：
 
 ```c
 #include <stdio.h>
 int main(){
-	int num = 011;  // 十进制数9
-	int val = 0b11; // 十进制3
-	int temp = 0x12;// 十进制18
+	int num = 011;  // 八进制，表示十进制数9
+	int val = 0b11; // 二进制，表示十进制3
+	int temp = 0x12;// 十六进制，表示十进制18
 	// %d是转换说明，代表值顺序和后面的num、val一致
 	printf("num是%d；val是%d；temp是%d",num,val,temp);  
 }
@@ -692,27 +692,268 @@ int main(){
 
 # 指针
 
-1、指针声明：
+指针变量，存储地址编号的变量。在32位平台下，任何类型的指针变量占用内存空间都是4字节大小；64位平台下则是8字节大小。对应类型的指针，只能存放对应类型的变量的地址。
+
+## 声明&定义
+
+1、简单的指针的声明与定义：`数据类型*  指针变量名;`
 
 ```c
+/* 示例 */
 int* ptr;   //  声明指向int型的指针
+int *p1,*p2; // 声明多个
 int arr[]={};
 ptr = arr;  // 指向arr数组的首元素
 ```
 
-2、函数与指针
+2、关于指针的操作符：
 
+- `*`：是一个指针修饰符，用于指针声明；也可以作为解引用符，用于获取地址所指向的内存中的值。
+- `&`：取地址符，用于取出地址。
 
+```c
+int* ptr;
+int val = 12;
+ptr = &val;
+printf("%d",*ptr);
+```
 
-3、数组与指针
+3、指针声明规范：
 
+```c
+int* ptr1;
+int* ptr2;
+```
 
+4、指针分类：
 
-4、指针操作：赋值（地址、指针可以赋值给指针）、解引用（将指针里存储的地址的值取出来）、递增递减（地址值的移动）、与整数相加（）、取地址（使用&取指针的地址）。
+- 指向基本数据类型的指针。
+- 函数指针。
+- 结构体指针。
+- 数组指针。
+- 通用指针，`void*`。
+
+## 指针操作
+
+指针操作：赋值（地址、指针可以赋值给指针，不同类型的指针间赋值可以使用强制转换）、解引用（使用  `*` 将指针里存储的地址的值取出来）、递增递减（指向地址的移动）、与整数相加相减（指向地址的移动）、取地址（使用 `&` 取指针的地址）。
+
+```c
+#include <stdio.h>
+int main() {
+    int arr[] = {3,6,9};
+    int* ptr;
+    ptr = arr;
+    printf("%d\n",*ptr);  // 3
+    printf("%d\n",*(ptr+2)); // 9
+    printf("%d\n",*(++ptr)); // 6
+    printf("%d\n",*ptr);     // 6
+    return 0;
+}
+```
+
+指针大小比较：两个相同类型的指针可以比较大小，只不过只有两个相同类型的指针指向同一个数组的元素的时候，比较大小才有意义，指向前面的指针的大小将小于指向后面的。
+
+```c
+int arr[] = {3,6,9};
+int* p1 = &arr[2];
+int* p2 = &arr[0];
+if(p1 > p2){
+    printf("p1大于p2，也就是后面的大于前面的");
+}
+```
 
 不要解引用未初始化的指针。
 
-常量指针不能转为非常量指针，但非常量指针可以转为常量指针。（即常量指针不能赋给非常量指针，反之则可以）
+```c
+int* ptr;
+printf("%d",*ptr);  // 不要对未初始化的指针使用 * 来解引用
+```
+
+## 指针数组
+
+指针数组，存放指针的数组。
+
+```c
+int* arr[10];  // 存储指向int类型的指针
+arr[2] 与 *(arr + 2)等价
+```
+
+## 指针的指针
+
+指针的指针，就是指向指针的指针。
+
+```c
+/* 存放指针的指针及它们的取值 */
+int val = 999;
+int* p1 = &val;
+int** p2 = &p1;
+int*** p3 = &p2;
+/* 一个*表示解引用一个地址，解引用后再解引用，解到最后的一个指向实际值的指针就可以取得值了 */
+printf("%d\n",*p1);
+printf("%d\n",**p2);
+printf("%d\n",**p3);
+```
+
+## 数组指针
+
+数组指针，就是指向数组类型的指针。
+
+1、数组指针定义：`指向的数组的类型 (*指针变量名)[数组元素个数]; `，意为该指针变量指向有n和数组元素的数组，指针存储的是数组首元素的地址值。
+
+```c
+/* 一维数组指针，配合二维数组使用 */
+int arr[2][3] = {{1,2,3},{4,5,6}};
+int (*p)[3] = arr;  //  数组指针指向 {1,2,3}
+int (*p1)[3] = arr + 1; // 数组指针指向{4,5,6}
+/* 数组指针存储的是数组的地址，*p1就可以解引用得到二维数组首元素的地址（二维数组的元素为数组）
+	*(*p1)就可以解引用出数组里的值
+*/
+printf("%d",*(*(p1)+2));
+```
+
+```c
+int arr1[]={7,8,9};
+int (*p1)[] = arr1;
+int (*p2)[6] = arr1;
+printf("%d\n",*(*(p1)+2));
+printf("%d",*(*p2+1));
+```
+
+二维数组指针，配合三维数组使用。
+
+如果对数组名取地址，那么就会得到一个数组指针。
+
+```c
+int arr[] = {1,2,3};
+printf("&arr=%p",&arr);
+printf("&arr+1=%p",&arr+1);
+```
+
+## 函数与指针
+
+1、指针形参：
+
+```c
+/* 使用指针形参，把地址传过去，传入的地址值是不会被改变的（因为是值传递） */
+/* 通过解引用后赋值会改变传入的地址所对应的内存中的值，地址本身不会被改变，但存储的值可以被改变 */
+void swap(int* a,int* b){
+    int temp = *b;
+    *b = *a;
+    *a = temp;
+}
+void main(){
+    int a = 10, b = 20;
+    swap(&a,&b);
+    printf("a=%d\n",a);
+    printf("b=%d",b)
+}
+```
+
+2、数组形参：
+
+```c
+/* 传一维数组，传的是数组首元素地址 */
+void test1(int[] arr){
+    
+}
+void test2(int* ptr){
+    
+}
+/* 传二维数组 */
+void test3(int (*ptr)[9]){
+    
+}
+```
+
+3、函数返回指针：
+
+```c
+char* test(void){
+    char* str = "string";
+    // 返回局部数组地址，函数执行完毕就会被释放，返回的地址指向的内存内的内容可能不再是预期的
+    return str;  
+}
+/* 使用动态内存分配，free()后或程序结束后内存才释放 */
+#include <string.h>
+char* test(void){
+    char* str;
+    str = (char*)malloc(100*sizeof(char));
+    strcpy_s(str,100,"string");
+    return str;  
+}
+void main(){
+    char* p = test();
+    printf("%s",p);
+    free(p);
+}
+```
+
+4、函数指针：程序运行时也会将函数加载到内存中，函数的名字就是函数的首地址，即函数入口地址，函数指针就是存放函数地址的指针。
+
+```c
+/* 函数指针变量定义：`函数返回值类型 (*函数指针变量名)(形参列表)` */
+int (*fun)(int,int);  // 定义了一个函数指针，指向的函数必须有两个整型形参、一个整型返回值
+```
+
+```c
+int test(int a,int b);
+void main(){
+    // 函数指针
+    int (*fun)(int,int);
+    fun = test;
+    printf("%d",fun(12,12));
+}
+int test(int n1, int n2){
+    return n1*n2;
+}
+```
+
+5、函数指针数组：存放函数指针变量的数组。
+
+```c
+/* 定义：`类型名 (*数组名[数组个数])(形参列表)` */
+int f1(int a,int b);
+int f2(int a,int b);
+void main(){
+	// 定义函数指针数组
+    int (*pFun[2])(int,int) = {f1,f2};
+    printf("乘积:%d\n",pFun[0](12,12));
+    printf("max:%d",pFun[1](9,6));
+}
+int f1(int n1, int n2){
+    return n1*n2;
+}
+int f2(int a,int b){
+    return a>b?a:b;
+}
+```
+
+6、函数指针作函数形参：
+
+```c
+int max(int a,int b);
+int min(int a,int b);
+int process(int (*p)(int,int),int x, int y);
+void main(){
+    printf("min:%d\n",process(min,9,6));
+    printf("max:%d",process(max,9,6));
+}
+int max(int a,int b){
+    return a>b?a:b;
+}
+int min(int a,int b){
+    return a<b?a:b;
+}
+int process(int (*p)(int,int),int x, int y){
+    return (*p)(x,y);
+}
+```
+
+## void*与NULL
+
+`void*`，是一个通用指针，如何类型的指针都可以给 `void*` 类型的指针赋值。
+
+NULL，空指针，内存编号`0x00000000`（32位平台）、`0x0000000000000000`（64位平台），常用于指针初始化（用0也是一样的）。
 
 # 字符串
 
@@ -732,9 +973,9 @@ const char * pt1 = "Something is pointing at me.";
 const char ar1[] = "Something is pointing at me.";
 
 printf("%s",ar1);
-printf("%s",pt1);  //  读取到整个字符
+printf("%s",pt1);  
 printf("%c",*ar1);
-printf("%c",*pt1); // 读取到首字符
+printf("%c",*pt1); 
 ```
 
 **2、两种字符串形式：**
@@ -744,7 +985,7 @@ printf("%c",*pt1); // 读取到首字符
 - 字符串存储在静态存储区，程序运行时将字符串拷贝到数组中，**然后将数组的别名识别为数组首元素地址的别名**，**这个地址是一个地址常量**，只能对这个别名进行读操作，不能进行赋值操作。
 - 程序运行后为数组分配内存空间，然后每个元素被初始化为字符串字面量对应的字符，数组末尾自动加上`\0`。
 
-指针形式的字符串：
+指针形式的字符串：（如果使用malloc()函数来分配内存的就是在动态存储区）
 
 - 字符串也是在静态存储区，只不过指针存储了这个字符串在静态存储区的地址，**最开始存储的是首元素的地址**，并且这个指针变量可以改变（因为改变的是指针变量存储的地址值，并没有改变所指向的那部分内存的地址）。
 - 因为字符串字面量被看作是const数据，其值应该是不可变的，如果使用指针指向字符串字面量，那么这个指针也应该声明为指向const数据的指针，以确保不能通过指针修改字符串数据。（如果不声明为const指针，那么能通过指针修改字符串内数据）
@@ -879,7 +1120,7 @@ int main() {
 
 ## 字符串排序
 
-对指针进行排序。
+对指针数组存储的指针进行排序。
 
 ## ctype.h字符函数
 
@@ -1111,21 +1352,227 @@ double stick(double ar[static 20]);
 
 
 
-# 文件IO
+
+
+# 结构和其它数据类型
+
+## 结构体
+
+1、声明、定义与初始化、成员使用：
+
+```c
+#define MAXTITL 20
+#define MAXAUTH 10
+// 结构的全局声明
+struct book {
+    char title[MAXTITL];
+    char author[MAXAUTH];
+    float value;
+};
+void main(){
+    // 定义并初始化结构体
+    struct book surprise = {"《C++ primer》","外国人",80};
+    struct book gift = {.title="《QT 开发指南》",.value=12};
+    // 使用已定义的来初始化，是整体拷贝
+    struct book g = gift;
+    struct book power;
+    /* 这样必须强制转换，因为{}也可以用来初始化数组 */
+    power =  (struct book){"知识就是力量","培根",999};
+    // 局部声明并定义结构体
+    struct student {
+        char name[20];
+        int age;
+    }s;
+    // 初始化局部结构体
+    s.age = 12;
+    // 数组名是常量，不能直接s.name=来进行赋值
+    strcpy_s(s.name,20,"你的名字");
+    printf("%s\n",surprise.title);
+    printf("%s\n",gift.title);
+    printf("%s\n",s.name);
+    printf("%s\n",power.title);
+}
+```
+
+2、伸缩性数组成员：C99新增了一个特性- 伸缩型数组成员（flexible array member） ，该数组不会立即存在。  
+
+带伸缩型数组成员的结构确实有一些特殊的处理要求。 第一， 不能用结构进行赋值或拷贝；第二， 不要以按值方式把这种结构传递给结构；第三， 不要使用带伸缩型数组成员的结构作为数组成员或另一个结构的成员  。  
+
+```c
+struct flex
+{ 
+    double scores[]; // 伸缩型数组成员
+}
+```
+
+3、C11增加的匿名结构体：匿名结构，一个没有名称的结构成员
+
+```c
+struct Student {
+    char name[99];
+    int age;
+    // 匿名结构体
+    struct{
+        int year;
+        int month;
+        int day;
+    };
+};
+void main(){
+    struct Student s = {"王霸天",33,{1990,9,9}};
+    printf("%d",s.year);
+}
+```
 
 
 
 
 
+## 结构数组
 
+```c
+struct book {
+    char title[20];
+    char author[30];
+    float value;
+};
+void main(){
+    // 结构数组，数组的元素是book类型的
+    struct book library[99];
+    library[0] = (struct book){"L给你的惊喜╰(*°▽°*)╯","可爱的人",99};
+    printf("%s\n",library[0].title);
+    printf("%c\n",library[0].title[4]);
+    printf("%c\n",library[0].title[0]);
+}
+```
 
+## 嵌套结构
 
+```c
+struct Birthday {
+    int year;
+    int month;
+    int day;
+};
+struct Student {
+    char name[30];
+    int age;
+    struct Birthday birthday;
+};
+void main(){
+    struct Student std = {"L Sir",133,{1949,1,1}};
+    printf("%d",std.birthday.year);
+}
+```
 
-# 结构体
+## 指向结构体的指针
 
+```c
+struct Birthday {
+    int year;
+    int month;
+    int day;
+};
+struct Student {
+    char name[30];
+    int age;
+    struct Birthday birthday;
+};
+void main(){
+    struct Student std = {"L Sir",133,{1949,1,1}};
+    // 声明结构指针
+    struct Student* s;
+    // 指向结构体 std
+    s = &std;
+    // 运算符`->`，s->name即为std.name
+    printf("%s\n",s->name);  //
+    printf("%d\n",s->age);
+    printf("%d\n",(*s).birthday.year);
+    printf("%d\n",s->birthday.month);
+}
+```
 
+## 结构体与函数
 
+1、向函数中传递结构信息的三种方式：传递结构、传递结构地址、传递结构成员
 
+```c
+struct Student {
+    char name[30];
+    int age;
+};
+void showInfo1(char name[],int age);
+void showInfo2(struct Student s);
+void showInfo3(struct Student* p);
+void main(){
+    struct Student std = {"王秋",33};
+    // 三种信息传递方式：
+    showInfo1(std.name,std.age);
+    showInfo2(std);
+    showInfo3(&std);
+}
+void showInfo1(char name[], int age){
+    printf("姓名：%s，年龄：%d\n",name,age);
+}
+void showInfo2(struct Student s){
+    printf("姓名：%s，年龄：%d\n",s.name,s.age);
+}
+void showInfo3(struct Student* p){
+    printf("姓名：%s，年龄：%d\n",p->name,p->age);
+}
+```
+
+2、结构体变量与结构体变量之间可以赋值，结构体可以使用其它同类结构体初始化。
+
+3、往函数传递结构体信息，之间传递结构体可能会消耗较大内存，使用指针可能会修改结构体信息（可以使用const限定不能修改）。
+
+4、结构体中的字符可以使用char数组也可以使用char型指针。使用char指针表示时因为未初始化指针，当为其添加字符值时地址可能会是如何一个地方，会有可能出现问题导致程序崩溃，所以使用char指针时需要慎重，不过也可以使用malloc()来为char指针动态分配内存：
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+struct Student {
+    char* name;
+    int age;
+};
+void name_init(struct Student*,const char[]);
+void name_clear(struct Student*);
+void main(){
+    struct Student std;
+    name_init(&std,"王良秋");
+    std.age = 33;
+    printf("名字：%s，年龄：%d\n", std.name,std.age);
+    name_clear(&std);
+}
+void name_init(struct Student* stu,const char temp[]){
+    int n = strlen(temp);
+    stu->name = (char*) malloc(n*sizeof (temp));
+    strcpy_s(stu->name, n*2,temp);
+}
+void name_clear(struct Student* stu){
+    free(stu->name);
+}
+```
+
+5、使用结构数组的函数：
+
+```c
+struct Student {
+    char name[99];
+    int age;
+};
+void show(const struct Student[],int);
+void main(){
+    struct Student std[3]={{"牛牛",1},{"兔兔",2},{"狗狗",3}};
+    show(std,3);
+}
+void show(const struct Student s[],int n){
+    for (int i = 0; i < n; ++i) {
+        printf("名字：%s，年龄：%d\n",s[i].name,s[i].age);
+    }
+}
+```
 
 
 
@@ -1137,7 +1584,13 @@ double stick(double ar[static 20]);
 
 
 
+# 文件IO
 
+文件（file） 通常是在磁盘或固态硬盘上的一段已命名的存储区。   
+
+C中的文件：把文件看作是一系列连续的字节， 每个字节都能被单独读取。  
+
+C中的两种文件格式：文本模式和二进制模式。
 
 
 
