@@ -1352,9 +1352,12 @@ double stick(double ar[static 20]);
 
 ## 结构体
 
+结构体——不同类型变量的集合，区别于数组（同一类型的值的集合）。
+
 1、声明、定义与初始化、成员使用：
 
 ```c
+/* 全局结构体声明 */
 #define MAXTITL 20
 #define MAXAUTH 10
 // 结构的全局声明
@@ -1363,6 +1366,10 @@ struct book {
     char author[MAXAUTH];
     float value;
 };
+```
+
+```c
+/* 全局结构体的使用 */
 void main(){
     // 定义并初始化结构体
     struct book surprise = {"《C++ primer》","外国人",80};
@@ -1372,6 +1379,16 @@ void main(){
     struct book power;
     /* 这样必须强制转换，因为{}也可以用来初始化数组 */
     power =  (struct book){"知识就是力量","培根",999};
+    strcpy_s(s.name,20,"你的名字");
+    printf("%s\n",surprise.title);
+    printf("%s\n",gift.title);
+    printf("%s\n",power.title);
+}
+```
+
+```c
+/* 局部结构体的使用 */
+void main(){
     // 局部声明并定义结构体
     struct student {
         char name[20];
@@ -1381,10 +1398,7 @@ void main(){
     s.age = 12;
     // 数组名是常量，不能直接s.name=来进行赋值
     strcpy_s(s.name,20,"你的名字");
-    printf("%s\n",surprise.title);
-    printf("%s\n",gift.title);
     printf("%s\n",s.name);
-    printf("%s\n",power.title);
 }
 ```
 
@@ -1417,8 +1431,6 @@ void main(){
     printf("%d",s.year);
 }
 ```
-
-
 
 
 
@@ -1616,7 +1628,7 @@ void main(){
 
 ## 枚举类型
 
-枚举类型用来表示整型常量。在C 语言中，枚举类型是被当做 int 或者 unsigned int 类型来处理的。
+枚举类型用来表示整型常量，常用来表示取值受限制的常量，是宏定义的集合。**在C 语言中，枚举类型是被当做 int 或者 unsigned int 类型来处理的。**
 
 1、声明枚举类型：
 
@@ -1637,6 +1649,11 @@ void main{
 2、赋值：
 
 ```c
+// 默认情况下，每个枚举常量的值从0开始依次递增
+enum spectrum {red, orange, yellow, green, blue, violet};
+```
+
+```c
 // 常量yellow前面的为0、1，后面的则为12、13、14
 enum spectrum {red, orange, yellow=11, green, blue, violet};
 ```
@@ -1644,7 +1661,7 @@ enum spectrum {red, orange, yellow=11, green, blue, violet};
 3、使用：
 
 ```c
-enum spectrum color;
+enum spectrum color; // 枚举类型的变量的值只能是枚举定义中的某一个
 for (color = red; color <= violet; color++){ 
    
 }
@@ -1652,7 +1669,7 @@ for (color = red; color <= violet; color++){
 
 ## typedef
 
-typedef——为某一类型自定义名称（也就是定义类型别名，只不过更加高级一点——编译器会将其解释为一种类型标识符，使用`#define`才是真正的别名 ）。  与 `#define`的区别：
+typedef——为某一类型自定义名称（也就是定义类型别名）。  与 `#define`的区别：
 
 1. typedef只能为类型定义名称。
 2. typedef由编译器解释，不是预处理器。    
@@ -1667,7 +1684,7 @@ typedef char * String;
 String s1,s2;   // char *s1,*s2;
 ```
 
-使用typedef 修饰结构体：
+使用 typedef 为结构体类型定义类型别名：
 
 ```c
 typedef struct complex {
@@ -1678,6 +1695,17 @@ COMPLEX c;   //  相当于 struct complex c;
 /* 可以省略结构体名称 */
 typedef struct {double x; double y;} rect;
 rect r1={3.0,6.0};   //  将被翻译为 struct {double x; double y;} r1= {3.0, 6.0}; 
+```
+
+使用 typedef 为枚举类型定义类型别名：
+
+```c
+typedef enum spectrum {
+    red, orange, yellow, green, blue, violet
+}COLOR;
+void main(){
+    COLOR c = red;
+}
 ```
 
 # 位操作
