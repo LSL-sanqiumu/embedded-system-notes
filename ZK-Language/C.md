@@ -367,7 +367,7 @@ int main(){
 }
 ```
 
-## 输入输出
+## 字符串和格式化输入输出
 
 ### 字符串
 
@@ -708,7 +708,7 @@ ptr = arr;  // 指向arr数组的首元素
 
 2、关于指针的操作符：
 
-- `*`：是一个指针修饰符，用于指针声明；也可以作为解引用符，用于获取地址所指向的内存中的值。
+- `*`：是一个指针修饰符，用于指针声明；也可以作为解引用符，用于获取指针存储的地址所指向的内存中的值。
 - `&`：取地址符，用于取出地址。
 
 ```c
@@ -798,7 +798,7 @@ printf("%d\n",**p3);
 
 数组指针，就是指向数组类型的指针。
 
-1、数组指针定义：`指向的数组的类型 (*指针变量名)[数组元素个数]; `，意为该指针变量指向有n和数组元素的数组，指针存储的是数组首元素的地址值。
+1、数组指针定义：`指向的数组的类型 (*指针变量名)[数组元素个数]; `，意为该指针变量指向有n个数组元素的数组，指针存储的是数组首元素的地址值。
 
 ```c
 /* 一维数组指针，配合二维数组使用 */
@@ -1230,12 +1230,6 @@ static double beta(int, int);     // 内部函数
 
 
 
-## 伪随机数
-
-
-
-
-
 ## 分配内存
 
 ### 内存分配函数
@@ -1574,11 +1568,380 @@ void show(const struct Student s[],int n){
 }
 ```
 
+## 联合类型
 
+union（联合）是一种数据类型，它能在同一个内存空间中储存不同的数据类型（不是同时储存，一个联合只能存储一个数据类型的值）。
 
+1、模板声明与初始化：
 
+```c
+// 联合模板
+union hold {
+    int n;
+    double m;
+    char letter;
+};
+void main(){
+    union hold h;
+    h.letter = 'L';
+    // 一个联合只能存储一个类型的数据，因此h.letter的数据将会被覆盖掉
+    h.m = 20;     
+    printf("%c\n",h.letter);
+    union hold save[10];
+    union hold* pu;
+	// 联合初始化
+    union hold valB = h; // 用另一个联合来初始化
+	union hold valC = {88}; // 初始化联合的n成员
+	union hold valD = {.m = 118.2}; // 指定初始化器
+}
+```
+
+2、联合的使用：
+
+```c
+union hold {
+    int n;
+    double m;
+    char letter;
+};
+void main(){
+    union hold h={.letter='L'};
+    union hold* ph = &h;
+    printf("%c\n",ph->letter);
+    printf("%c\n",(*ph)->letter);
+}
+```
+
+3、匿名联合
+
+## 枚举类型
+
+枚举类型用来表示整型常量。在C 语言中，枚举类型是被当做 int 或者 unsigned int 类型来处理的。
+
+1、声明枚举类型：
+
+```c
+// 声明枚举类型，里面的常量的值依次为0~5（默认情况下从0开始）
+enum spectrum {red, orange, yellow, green, blue, violet};
+void main{
+    enum spectrum color;
+    printf("%d\n",color);  // 0
+    color = blue; 
+    printf("%d\n",color);  // 4
+    // 可用任意整数类型表示枚举变量，前提是这个类型可以存储下枚举常量
+    unsigned char c = violet;
+    printf("%d\n",c);      // 5
+}
+```
+
+2、赋值：
+
+```c
+// 常量yellow前面的为0、1，后面的则为12、13、14
+enum spectrum {red, orange, yellow=11, green, blue, violet};
+```
+
+3、使用：
+
+```c
+enum spectrum color;
+for (color = red; color <= violet; color++){ 
+   
+}
+```
+
+## typedef
+
+typedef——为某一类型自定义名称（也就是定义类型别名，只不过更加高级一点——编译器会将其解释为一种类型标识符，使用`#define`才是真正的别名 ）。  与 `#define`的区别：
+
+1. typedef只能为类型定义名称。
+2. typedef由编译器解释，不是预处理器。    
+3. 在其受限范围内，typedef比#define更灵活。  
+
+```c
+typedef unsigned char BYTE;
+typedef unsigned char byte;
+typedef char * STRING;
+typedef char * String;
+
+String s1,s2;   // char *s1,*s2;
+```
+
+使用typedef 修饰结构体：
+
+```c
+typedef struct complex {
+    float real;
+    float imag;
+} COMPLEX;
+COMPLEX c;   //  相当于 struct complex c;
+/* 可以省略结构体名称 */
+typedef struct {double x; double y;} rect;
+rect r1={3.0,6.0};   //  将被翻译为 struct {double x; double y;} r1= {3.0, 6.0}; 
+```
 
 # 位操作
+
+| 位运算符    |                                                              |
+| ----------- | ------------------------------------------------------------ |
+| `&`    与   | 全1则1，有0则0                                               |
+| `|`    或   | 有1则1，全0则0                                               |
+| `~`    非   | 取反操作                                                     |
+| `^`    异或 | 相同为0，不同为1（同假异真）                                 |
+| `<<`   左移 | 符号位不变，低位都填充0                                      |
+| `>>`   右移 | 符号位不变，移出去的丢失，符号位是啥高位就填充啥<br>（无符号的则是填充0） |
+
+`&`、`|`的运用：掩码、打开位、关闭位、切换位、检查位
+
+1、掩码：`&`，只有有0就是0，那么可以通过与上1来决定哪一位可见。
+
+```c
+// 如下，将低四位清0，高四位不变
+unsigned char n = 0x11 & 0xF0;
+```
+
+2、打开位（设置位）：`|`，使用或运算符，任何位与0都将是本身，与1都将为1，就可以决定将哪一位打开。（将指定位置为1）
+
+```c
+// 置最低位为1
+unsigned char n = 0xF0 | 0x01;
+```
+
+3、关闭位（清空位）：关闭所想要关闭的位。（将指定为置为0）
+
+```c
+// flags中与MASK为0的位相应的位在结果中都未改变。
+unsigned char flags=0x0F, MASK=0xB6;
+unsigned char n = flags &~ MASK;  // 即 flags & (~MASK)
+unsigned char flags &= ~MASK;  // 简化
+// 通过&实现，将0x0F的除低一位、低四位外的都置为0
+unsigned char y = 0x0F & 0x09;
+```
+
+4、切换位：打开已关闭的，或者关闭已打开的，使用异或实现。
+
+```c
+// flags中与MASK为1的位相对应的位都被切换了	
+unsigned flags=0b00001111, MASK = 0b10110110;
+flags = flags ^ MASK;  // 0b10111001
+```
+
+5、检查位：检查某些位是不是置1了。
+
+```c
+// 取出那些位，然后再比较
+// 检测最低位是否置1：
+unsigned flags=0b00001111, MASK = 0b00000001;
+if((flags & MASK) == MASK)
+```
+
+6、位字段：1位的字段，只能表示0或1。
+
+```c
+// 为字段变量声明4个位字段，字段变量prnt占用一个int的内存大小
+// （也就是说一个字段变量最多可以声明 sizeof(int)*8 个字段变量 ）
+struct {
+    // 字段标签 : 字段宽度
+    unsigned int autfd : 1;
+    unsigned int bldfc : 1;
+    unsigned int undln : 1;
+    unsigned int itals : 1;
+} prnt;
+void main(){
+    // 字段赋值
+    prnt.itals = 0;
+    prnt.undln = 1;
+}
+```
+
+字段的详细用法见《C primer plus》P1167
+
+# C预处理器
+
+预处理器：程序执行前查看程序，将符号缩写替换成其表示的内容，基本上它的工作是把一些文本转换成另外一些文本。
+
+预处理前编译器会对程序进行翻译处理：
+
+1. 首先编译器把源代码中出现的字符映射到源字符集。  
+2. 其次编译器定位每个反斜杠后面跟着换行符的实例，并删除它们。  
+3. 最后编译器把文本划分成预处理记号序列、 空白序列和注释序列。
+
+## #define
+
+宏与参数宏：
+
+```c
+//  Num 称之为宏，后面的称之为替换体，宏只做替换不会进行运算
+#define Num 12
+// 参数宏
+#define SUM(X,Y) X+Y
+void main()
+{
+    int x=12, y=12;
+    int sum = SUM(x,y);  // SUM(x,y) 会被替换成 x+y
+    printf("%d",sum);
+}
+```
+
+字符串中的宏参数：
+
+```c
+#define PRI(x) printf("The square of "#x" is %d\n",(x)*(x)) 
+void main()
+{
+    PRI(2);  // The square of 2 is 4
+}
+```
+
+`##`——记号黏合：
+
+```c
+#define NAME(n) x##n
+#define PRINT(n) printf("x" #n " = %d\n", x##n);
+void main()
+{
+    int NAME(1) = 12;   // int x1 = 12;
+    PRINT(1);  // x1 = 12
+}
+```
+
+变参宏：`...`和`__VA_ARGS__`
+
+```c
+#define PR(X, ...) printf("Message " #X ": " __VA_ARGS__)
+void main()
+{
+    int num = 12;
+    // printf("Message " #X ": ""%d\n",num)
+    PR(num,"%d\n",num);  // Message num: 12
+}
+```
+
+使用宏表示简单函数：
+
+```c
+#define MAX(X,Y) ((X) > (Y) ? (X) : (Y))
+#define ABS(X) ((X) < 0 ? -(X) : (X))
+#define ISSIGN(X) ((X) == '+' || (X) == '-' ? 1 : 0)
+```
+
+## #include
+
+当预处理器发现#include 指令时， 会查看后面的文件名并把文件的内容包含到当前文件中， 即替换源文件中的#include指令。 这相当于把被包含文件的全部内容输入到源文件`#include`指令所在的位置。  
+
+`include`指令的两种形式：
+
+1. `#include <stdio.h>`：在 UNIX 系统中， 尖括号告诉预处理器在标准系统目录中查找该文件。
+2. `#include "myh.h"`：双引号告诉预处理器首先在当前目录中（或文件名中指定的其他目录） 查找该文件， 如果未找到再查找标准系统目录。
+
+头文件中常见的内容： #define指令、 结构声明、typedef和函数原型。  
+
+## #undef
+
+“取消”已定义的#define指令。  如果想使用一个名称， 又不确定之前是否已经用过， 为安全起见， 可以用#undef 指令取消该名字的定
+义。  
+
+```c
+#define LIMIT 400
+
+#undef LIMIT   // 移除宏 LIMIT
+```
+
+## else
+
+### 条件编译
+
+#ifdef、 #else和#endif指令。
+
+```c
+#ifdef 宏
+// 如果定义了这个宏，就执行这里的指令
+#else
+// 如果没有定义这个宏，就执行这里的指令
+#endif
+```
+
+`#ifndef`，如果未定义：
+
+```c
+#ifndef __DELAY_H  // 如果未定义__DELAY_H，就执行其后面的指令
+#define __DELAY_H
+
+void Delay_us(uint32_t us);
+void Delay_ms(uint32_t ms);
+void Delay_s(uint32_t s);
+
+#endif
+```
+
+`#if` 和 `#elif`指令  ：\#if后面跟整型常量表达式， 如果表达式为非零， 则表达式为真，类似if-else
+
+```c
+#if SYS == 1
+#include "ibmpc.h"
+#elif SYS == 2
+#include "vax.h"
+#elif SYS == 3
+#include "mac.h"
+#else
+#include "general.h"
+#endif
+```
+
+### 预定义宏
+
+![](images/4.预定义宏.png)
+
+### #line和#error
+
+### \#pragma   
+
+### 泛型
+
+## 内联函数
+
+函数调用都有一定的开销， 因为函数的调用过程包括建立调用、传递参数、 跳转到函数代码并返回。  
+
+使用宏使代码内联， 可以避免这样的开销。
+
+C99还提供另一种方法： 内联函数（inline function）。（类似宏定义，使用内联代码代替函数调用）    
+
+其实C99和C11标准中叙述的是： “把函数变成内联函数建议尽可能快地调用该函数， 其具体效果由实现定义”。 因此， 把函数变成内联函数， 编译器可能会用内联代码替换函数调用， 并（或） 执行一些其他的优化， 但是也可能不起作用。  （**内联只是建议，编译器可能会将内联代码来替代函数调用，也可能不会）**
+
+**内联函数定义：**
+
+1. 规定具有内部链接的函数可以成为内联函数。
+2. 规定内联函数的定义与调用该函数的代码必须在同一个文件中。
+
+```c
+inline static void eatline() // 内联函数定义/原型
+{ 
+	while (getchar() != '\n')
+	continue;
+}
+void main(){
+    eatline();
+}
+// 相当于
+void main(){
+    while (getchar() != '\n')
+	continue;
+}
+```
+
+如果多个文件需要使用内联函数，那么可以将内联函数放进头文件中。一般都不在头文件中放置可执行代码， 内联函数是个特例。 因为内联函数具有内部链接， 所以在多个文件中定义同一个内联函数不会产生什么问题。  
+
+C还允许混合使用内联函数定义和外部函数定义：
+
+
+
+## _Noreturn函数
+
+函数说明符`_Noreturn`， 表明调用完成后函数不返回主调函数。  
+
+
+
+# C库
 
 
 
@@ -1591,15 +1954,3 @@ void show(const struct Student s[],int n){
 C中的文件：把文件看作是一系列连续的字节， 每个字节都能被单独读取。  
 
 C中的两种文件格式：文本模式和二进制模式。
-
-
-
-# C预处理器
-
-
-
-
-
-
-
-# 数据结构
