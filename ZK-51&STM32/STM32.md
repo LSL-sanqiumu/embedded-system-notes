@@ -16,6 +16,19 @@ STM32开发方式：
 
 >早起由于IC集成工艺不发达，很多东西都是外设的，比如PWM、ADC、CAN等DSP芯片，原本都是需要芯片外接的，即使是现在，仍然有独立的ADC芯片，比如ADS8364等等。但是现在，PWM、ADC等等东西都已经集成在DSP芯片内，当然，无论如何，芯片总还是会需要外接一些设备实现某种系统，为了与那些外设相区别，就**将集成在芯片内，但是又不属于芯片本身**（比如DSP，是一种微处理器，因此芯片中不属于微处理器的部分都是外设）的称为**“片上外设”**。
 
+# 整理—缩写表
+
+| 缩写 | 全称                                          |
+| ---- | --------------------------------------------- |
+| RCC  | reset and clock control，复位和时钟控制       |
+| AHB  | Advanced High performance Bus，高级高性能总线 |
+| APB  | Advanced  Peripheral Bus，外围总线            |
+|      |                                               |
+|      |                                               |
+|      |                                               |
+|      |                                               |
+|      |                                               |
+
 # start—基本工程
 
 ## 建立工程
@@ -163,7 +176,7 @@ GPIO结构：
 
 根据数据手册中列出的每个I/O端口的特定硬件特征， GPIO端口的每个位可以由软件分别配置成多种模式。
 
-1. ─ 输入浮空、输入上拉、输入下拉、模拟输入
+1. 输入浮空、输入上拉、输入下拉、模拟输入
 2.  开漏输出、推挽式输出、 推挽式复用功能、开漏复用功能  
 
 GPIO输入输出电路如下，上面是输入电路，下面是输出电路。
@@ -210,7 +223,7 @@ GPIO输入输出电路如下，上面是输入电路，下面是输出电路。
 
 ![](img/6.GPIO模式.png)
 
-## GPIO输出操作
+## GPIO函数原型
 
 **1、外设时钟控制的函数原型：** STM外设正常工作的前提是使能（启用）了相应的外设，有的外设需要使能1个、有的则需要使能2个或3个时钟才能正常工作。（注意复位是通过改变外设的复位寄存器来实现复位功能的，不会去改变外设的时钟状态）
 
@@ -220,11 +233,11 @@ GPIO输入输出电路如下，上面是输入电路，下面是输出电路。
 
 ```c
 /* 第一个参数用来选择外设，第二个参数用来选择使能或失能 */
-// RCC AHB   外设时钟控制
+// RCC AHB   
 void RCC_AHBPeriphClockCmd(uint32_t RCC_AHBPeriph, FunctionalState NewState);
-// RCC AHB2  外设时钟控制
+// RCC APB2 
 void RCC_APB2PeriphClockCmd(uint32_t RCC_APB2Periph, FunctionalState NewState);
-// RCC AHB1  外设时钟控制
+// RCC APB1  
 void RCC_APB1PeriphClockCmd(uint32_t RCC_APB1Periph, FunctionalState NewState);
 ```
 
@@ -247,7 +260,7 @@ void GPIO_StructInit(GPIO_InitTypeDef* GPIO_InitStruct);
 
 ```c
 /* GPIO_TypeDef* GPIOx——选择外设  uint16_t GPIO_Pin——选择io口  */
-// 读
+// 读，读取输入
 uint8_t GPIO_ReadInputDataBit(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin);
 uint16_t GPIO_ReadInputData(GPIO_TypeDef* GPIOx);
 uint8_t GPIO_ReadOutputDataBit(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin);
@@ -259,7 +272,73 @@ void GPIO_WriteBit(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin, BitAction BitVal); //
 void GPIO_Write(GPIO_TypeDef* GPIOx, uint16_t PortVal);
 ```
 
-**4、使用上述函数操作GPIO：**
+**4、常用参数说明：**
+
+结构体——GPIO_InitTypeDef：
+
+```c
+typedef struct
+{
+  uint16_t GPIO_Pin;            // GPIO引脚
+  GPIOSpeed_TypeDef GPIO_Speed; // GPIO输出速度
+  GPIOMode_TypeDef GPIO_Mode;   // GPIO工作模式 
+}GPIO_InitTypeDef;
+```
+
+枚举——GPIOMode_TypeDef：GPIO的八种工作模式（对应上面结构体的GPIO_Mode）
+
+```c
+typedef enum{ 
+  GPIO_Mode_AIN = 0x0,  // Analog In，模拟输入
+  GPIO_Mode_IN_FLOATING = 0x04, // floating 浮空
+  GPIO_Mode_IPD = 0x28,  // in pull down 下拉输入
+  GPIO_Mode_IPU = 0x48,  // in pull up 上拉输入
+    
+  GPIO_Mode_Out_OD = 0x14, // out open drain 开漏输出
+  GPIO_Mode_Out_PP = 0x10, // out push pull 推挽输出
+  GPIO_Mode_AF_OD = 0x1C,  // ATL open drain 复用开漏输出
+  GPIO_Mode_AF_PP = 0x18   // atl push pull 复用推挽输出
+}GPIOMode_TypeDef;
+```
+
+GPIO引脚的宏定义：（对应上面结构体的GPIO_Pin）
+
+```c
+#define GPIO_Pin_0                 ((uint16_t)0x0001)  /*!< Pin 0 selected */
+#define GPIO_Pin_1                 ((uint16_t)0x0002)  /*!< Pin 1 selected */
+#define GPIO_Pin_2                 ((uint16_t)0x0004)  /*!< Pin 2 selected */
+#define GPIO_Pin_3                 ((uint16_t)0x0008)  /*!< Pin 3 selected */
+#define GPIO_Pin_4                 ((uint16_t)0x0010)  /*!< Pin 4 selected */
+#define GPIO_Pin_5                 ((uint16_t)0x0020)  /*!< Pin 5 selected */
+#define GPIO_Pin_6                 ((uint16_t)0x0040)  /*!< Pin 6 selected */
+#define GPIO_Pin_7                 ((uint16_t)0x0080)  /*!< Pin 7 selected */
+#define GPIO_Pin_8                 ((uint16_t)0x0100)  /*!< Pin 8 selected */
+#define GPIO_Pin_9                 ((uint16_t)0x0200)  /*!< Pin 9 selected */
+#define GPIO_Pin_10                ((uint16_t)0x0400)  /*!< Pin 10 selected */
+#define GPIO_Pin_11                ((uint16_t)0x0800)  /*!< Pin 11 selected */
+#define GPIO_Pin_12                ((uint16_t)0x1000)  /*!< Pin 12 selected */
+#define GPIO_Pin_13                ((uint16_t)0x2000)  /*!< Pin 13 selected */
+#define GPIO_Pin_14                ((uint16_t)0x4000)  /*!< Pin 14 selected */
+#define GPIO_Pin_15                ((uint16_t)0x8000)  /*!< Pin 15 selected */
+#define GPIO_Pin_All               ((uint16_t)0xFFFF)  /*!< All pins selected */
+```
+
+GPIO输出速度：（对应上面结构体的GPIO_Speed）
+
+```c
+typedef enum
+{ 
+  GPIO_Speed_10MHz = 1,
+  GPIO_Speed_2MHz, 
+  GPIO_Speed_50MHz    //  50MHz
+}GPIOSpeed_TypeDef;
+```
+
+
+
+## GPIO输出操作
+
+使用库函数进行GPIO输出操作的三步骤：1、启用外设时钟；2、GPIO的初始化，设置GPIO模式；3、使用输出函数进行操作。
 
 ```c
 int main(void){
@@ -287,75 +366,13 @@ int main(void){
 
 ![](img/6.GPIOuse.png)
 
-
-
-**5、参数说明：**
-
-结构体：
-
-```c
-typedef struct
-{
-  uint16_t GPIO_Pin;            // GPIO引脚
-  GPIOSpeed_TypeDef GPIO_Speed; // GPIO输出速度
-  GPIOMode_TypeDef GPIO_Mode;   // GPIO工作模式 
-}GPIO_InitTypeDef;
-```
-
-GPIO的八种工作模式：（GPIO_Mode）
-
-```c
-typedef enum{ 
-  GPIO_Mode_AIN = 0x0,  // Analog In，模拟输入
-  GPIO_Mode_IN_FLOATING = 0x04, // floating 浮空
-  GPIO_Mode_IPD = 0x28,  // in pull down 下拉输入
-  GPIO_Mode_IPU = 0x48,  // in pull up 上拉输入
-    
-  GPIO_Mode_Out_OD = 0x14, // out open drain 开漏输出
-  GPIO_Mode_Out_PP = 0x10, // out push pull 推挽输出
-  GPIO_Mode_AF_OD = 0x1C,  // ATL open drain 复用开漏输出
-  GPIO_Mode_AF_PP = 0x18   // atl push pull 复用推挽输出
-}GPIOMode_TypeDef;
-```
-
-GPIO引脚：（GPIO_Pin）
-
-```c
-#define GPIO_Pin_0                 ((uint16_t)0x0001)  /*!< Pin 0 selected */
-#define GPIO_Pin_1                 ((uint16_t)0x0002)  /*!< Pin 1 selected */
-#define GPIO_Pin_2                 ((uint16_t)0x0004)  /*!< Pin 2 selected */
-#define GPIO_Pin_3                 ((uint16_t)0x0008)  /*!< Pin 3 selected */
-#define GPIO_Pin_4                 ((uint16_t)0x0010)  /*!< Pin 4 selected */
-#define GPIO_Pin_5                 ((uint16_t)0x0020)  /*!< Pin 5 selected */
-#define GPIO_Pin_6                 ((uint16_t)0x0040)  /*!< Pin 6 selected */
-#define GPIO_Pin_7                 ((uint16_t)0x0080)  /*!< Pin 7 selected */
-#define GPIO_Pin_8                 ((uint16_t)0x0100)  /*!< Pin 8 selected */
-#define GPIO_Pin_9                 ((uint16_t)0x0200)  /*!< Pin 9 selected */
-#define GPIO_Pin_10                ((uint16_t)0x0400)  /*!< Pin 10 selected */
-#define GPIO_Pin_11                ((uint16_t)0x0800)  /*!< Pin 11 selected */
-#define GPIO_Pin_12                ((uint16_t)0x1000)  /*!< Pin 12 selected */
-#define GPIO_Pin_13                ((uint16_t)0x2000)  /*!< Pin 13 selected */
-#define GPIO_Pin_14                ((uint16_t)0x4000)  /*!< Pin 14 selected */
-#define GPIO_Pin_15                ((uint16_t)0x8000)  /*!< Pin 15 selected */
-#define GPIO_Pin_All               ((uint16_t)0xFFFF)  /*!< All pins selected */
-```
-
-GPIO输出速度：（GPIO_Speed）
-
-```c
-typedef enum
-{ 
-  GPIO_Speed_10MHz = 1,
-  GPIO_Speed_2MHz, 
-  GPIO_Speed_50MHz    //  50MHz
-}GPIOSpeed_TypeDef;
-```
-
 **6、实践：点亮LED灯、LED灯闪烁、LED流水灯、控制有源蜂鸣器的响应。**
 
 
 
 ## GPIO输入操作
+
+使用库函数读取输入的三步骤：1、启用外设时钟；2、GPIO的初始化，设置GPIO模式；3、使用读取函数进行操作。
 
 ```c
 /* GPIO_TypeDef* GPIOx——选择外设  uint16_t GPIO_Pin——选择io口  */
@@ -372,9 +389,7 @@ uint16_t GPIO_ReadOutputData(GPIO_TypeDef* GPIOx);
 
 后两个读取输出数据寄存器的，严格来说不是读取输入的函数。
 
-
-
-
+**实践：按钮控制LED亮灭，光敏传感器控制蜂鸣器响应。**
 
 # C
 
