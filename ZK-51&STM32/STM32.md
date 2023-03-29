@@ -1,5 +1,7 @@
 # STM32
 
+教程：江科大自协化。
+
 ![](img/1.32.png)
 
 ![](img/2.32外设.png)
@@ -402,7 +404,7 @@ int main(void){
 
 **实践：按钮控制LED亮灭，光敏传感器控制蜂鸣器响应。**
 
-# C
+## C
 
 ![](img/7.数据类型.png)
 
@@ -515,7 +517,7 @@ void GPIOB14_EXTI_Init(void){
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_14;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_Init(GPIOB, &GPIO_InitStructure);
-    /* 第三步：  */
+    /* 第三步：  配置AFIO*/
 	GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource14);
     /* 第四步：根据结构体里面指定的参数初始化EXTI */
     EXTI_InitTypeDef EXTI_InitStruct;
@@ -627,19 +629,206 @@ void EXTI15_10_IRQHandler(void)
 
 # 定时器
 
-TIM（Timer）—— 定时器。
+TIM（Timer）—— 定时器：对输入的时钟进行计数，并在计数值达到设定值时触发中断。
+
+STM32的定时器包含16位计数器、预分频器、自动重装寄存器的时基单元，**在72MHz计数时钟下可以实现最大59.65s的定时**。（中断频率=72M/65535/65535，中断频率的倒数即为59.65）
+
+STM32的定时器功能：不仅具备基本的**定时中断功能**，而且还包含**内外时钟源选择、输入捕获、输出比较、编码器接口、主从触发模式**等多种功能。
+
+STM32的定时器分类：根据复杂度和应用场景分为了高级定时器、通用定时器、基本定时器三种类型。
+
+![](img/9.定时器类型.png)
+
+## 定时器结构
+
+**1、基本定时器的结构框图：**
+
+![](img/9.基本定时器.png)
+
+1、来自RCC的TIMxCLK的内部时钟，频率值一般是系统的主频 72MHz，因此通向时基单元的计数基准频率为72MHz。
+
+2、预分频器：对72MHz的计数时钟进行分频，如果预分频器写1那就是2分频，`输出频率=输入频率/实际分频系数=72MHz / 2=36MHZ`（实际分频系数=预分频器的值 + 1）。预分频器是16位，因此最大值为65535，即最大为65536分频。
+
+3、计数器：对预分频器后的时钟进行计数，计数时钟每来一个上升沿计数器就加1；计数器也是16位，因此最大从0加到65535，当自增运行到目标值时就触发中断。
+
+4、因为计数器的值加到最大后会从0开始继续加，不断自增运行，因此需要自动重装载寄存器，它也是16位的，用于存储我们写入计数器的计数目标，自动重装值是固定的目标，当计数值等于自动重装值时，就会触发中断并且清零计数器。（计数值等于自动重装值产生的中断，我们一般称之为更新中断）
+
+5、更新中断通往NVIC，再配置好NVIC的定时器通道，定时器的更新中断就能得到CPU响应。
+
+主模式触发DAC的功能（STM32的一大特色功能）：让内部硬件在不受程序的控制下实现自动运行。（掌握好这项功能的运用，在某些场景下可以极大地减轻CPU的负担）
+
+- 使用DAC输出波形，通常思路是使用定时器中断，每隔一段时间在定时器中断程序中用代码手动触发DAC转换，然后DAC输出。缺点：主程序会频繁处于中断状态，影响主程序的运行和其它中断。
+- 主模式：使用主模式，可以将定时器的更新事件映射到触发输出TRGO（Trigger Out）的位置，然后TRGO直接接到DAC的触发转换引脚上，这样只需要在定时器把更新事件通过主模式映射到TRG0，然后TRGO就可直接去触发DAC。
+
+**2、通用定时器结构框图：**
+
+<img src="img/9.通用高级定时器.png"  />
+
+通用定时器和高级定时器支持三种计数模式：向上计算、向下计数、中央对齐。
+
+1、时钟源：可以选择内部的72MHz时钟，也可以选择来自TIMx_ETR引脚（复用了PA0引脚）上的外部时钟。
+
+2、TIMx_ETR引脚（复用了PA0引脚）上接入外部时钟：输入信号经极性选择、边沿检测和预分配器后再滤波，然后接入触发控制器作为定时器的输入时钟。（这一路也叫“外部时钟模式2”）
+
+3、TRGI（Trigger Input）也可以提供时钟：主要用作触发输入，可以触发定时器的从模式。触发输入作为外部时钟时，这一路就叫做“外部时钟1”，这时可以实现定时器的级联。外部时钟1的时钟五个来源，如下：
+
+<img src="img/9.通用定时器外部时钟.png" style="zoom:67%;" />
+
+4、最常用的时钟还是内部时钟；如果需要使用外部时钟，首选ETR引脚外部时钟模式2的输入，简单、直接。
+
+5、编码器接口：读取正交编码器的输出波形。
+
+6、主模式触发DAC的功能：也是TRGO那，只需要在定时器把更新事件通过主模式映射到TRG0，然后TRGO就可直接去触发DAC。
+
+**3、输入输出电路：**
+
+![](img/9.输入输出电路.png)
+
+左边是输入捕获电路，可用于测输入方波的频率；右边是输出比较电路，可用于输出PUM波形，驱动电机等；两者共用中间的寄存器。
+
+**4、高级定时器结构框图：**
+
+![](img/9.高级定时器.png)
+
+1、重复次数计数器：用于实现每隔几个计算周期才发生一次更新事件或更新中断。（就相当于对输出的更新信号再进行了一次分频，乘以65535，提升了很多定时时间）
+
+2、DTG（Dead Time Generate）—— 死区生成电路，的输出引脚由一个变为了两个互补的输出，可以输出一对互补的PWM波，这些电路是为了驱动三相无刷电机的（三相无刷电机，常用于四轴飞行器、电动车后轮、电钻等，因为三相无刷电机的驱动电路一般需要三个桥臂，每个桥臂要用2个大功率开关管来控制，总共需要6个大功率开关管来控制，所以这里的输出PWM引脚的前三路就变为了互补的输出，而第四路没什么变化，因为三相电机只需要三路就行了；另外为了防止互补输出的PWM驱动桥臂时在开关切换的瞬间由于器件的不理想造成短暂的直通现象，所以前面加上了死区生成电路，在开关切换的瞬间产生一定时长的死区，让桥臂的上下管全部关断，防止直通现象）。
+
+3、刹车输入功能，为了给电机驱动提供安全保障的，如果外部引脚 TIMx_BKIN（break in）产生了刹车信号或者内部时钟失效产生了故障，那么控制电路就会自动切断电机的输出，防止意外发生。
 
 
 
+## 定时中断基本结构
+
+定时中断基本结构图：
+
+![](img/9.定时器基本中断结构.png)
+
+## 时序
+
+看不懂w(ﾟДﾟ)w，学习数电，自己设计一个计数器。
+
+## 定时中断使用
+
+### 1、外部中断配置
+
+1. 第一步：RCC开启时钟，打开后定时器的基准时钟和整个外设的工作时钟都会同时打开。
+2. 第二步：选择时钟源。
+3. 第三步：配置时基单元，包括预分频器、自动重装器、计数模式等。
+4. 第四步：配置输出中断控制，允许更新中断输出到NVIC。
+5. 第五步：在NVIC中打开定时器中断的通道，并分配一个优先级。
+6. 第六步：运行。
+
+```c
+void Timer_Init(void)
+{
+    /* 第一步：RCC开启时钟 */
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2,ENABLE);
+	/* 第二步：选择时钟源 */
+	TIM_InternalClockConfig(TIM2); // 定时器默认使用内部时钟，可以不写
+	/* 第三步：配置时基单元 */
+	TIM_TimeBaseInitTypeDef TIM_TimeBaseInitStructure;
+	TIM_TimeBaseInitStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+	TIM_TimeBaseInitStructure.TIM_CounterMode = TIM_CounterMode_Up;
+	TIM_TimeBaseInitStructure.TIM_Period = 10000 - 1;
+	TIM_TimeBaseInitStructure.TIM_Prescaler = 7200 - 1;
+	TIM_TimeBaseInitStructure.TIM_RepetitionCounter = 0;
+	TIM_TimeBaseInit(TIM2, &TIM_TimeBaseInitStructure);
+	/* 第四步：配置输出中断控制 */
+	TIM_ClearFlag(TIM2,TIM_IT_Update); // 避免刚初始化就进中断
+	TIM_ITConfig(TIM2,TIM_IT_Update,ENABLE);
+	
+	/* 第五步：NVIC配置 */
+    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
+    // 根据结构体里面指定的参数初始化NVIC
+    NVIC_InitTypeDef NVIC_InitStructure;
+    NVIC_InitStructure.NVIC_IRQChannel = TIM2_IRQn;   //  选择通道
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;        // 启用
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2; // 抢占优先级
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;        // 响应优先级
+    NVIC_Init(&NVIC_InitStructure);
+	/* 第六步：运行 */
+	TIM_Cmd(TIM2,ENABLE);  // 启动定时器
+}
+```
 
 
 
+### 函数原型说明
 
+函数说明   stm32f10x_tim.h ：
 
+```c
+// 复位
+void TIM_DeInit(TIM_TypeDef* TIMx);
+// 1.时基单元初始化，根据结构体里面指定的参数来初始化，参数1为某个定时器
+void TIM_TimeBaseInit(TIM_TypeDef* TIMx, TIM_TimeBaseInitTypeDef* TIM_TimeBaseInitStruct);
+// 为传入的结构体变量赋默认值
+void TIM_TimeBaseStructInit(TIM_TimeBaseInitTypeDef* TIM_TimeBaseInitStruct);
+// 2.定时器运行控制，参数1选择定时器，参数2选择启用还是禁用
+void TIM_Cmd(TIM_TypeDef* TIMx, FunctionalState NewState);
+// 3.中断输出控制，使能中断输出信号，参数1选择定时器，参数2选择配置哪个中断输出，参数3使能还是失能
+void TIM_ITConfig(TIM_TypeDef* TIMx, uint16_t TIM_IT, FunctionalState NewState);
+```
 
+```c
+/* 时基单元的时钟选择函数 */
+// 选择内部时钟
+void TIM_InternalClockConfig(TIM_TypeDef* TIMx);
+// 选择ITRx其它定时器的时钟，参数1-选择要配置的定时器，参数2-选择要接入哪个其它的定时器
+void TIM_ITRxExternalClockConfig(TIM_TypeDef* TIMx, uint16_t TIM_InputTriggerSource);
+// 选择TIx捕获通道的时钟，参数1-选择要配置的定时器，参数2-选择TIx具体的引脚，参数3-输入的极性，参数4-滤波器
+void TIM_TIxExternalClockConfig(TIM_TypeDef* TIMx, uint16_t TIM_TIxExternalCLKSource,
+                                uint16_t TIM_ICPolarity, uint16_t ICFilter);
+// 选择ETR通过外部时钟模式1输入的时钟，参数1-外部触发预分频器，参数2-极性，参数3-滤波器
+void TIM_ETRClockMode1Config(TIM_TypeDef* TIMx, uint16_t TIM_ExtTRGPrescaler, uint16_t TIM_ExtTRGPolarity,
+                             uint16_t ExtTRGFilter);
+// 选择ETR通过外部时钟模式2输入的时钟
+void TIM_ETRClockMode2Config(TIM_TypeDef* TIMx, uint16_t TIM_ExtTRGPrescaler, 
+                             uint16_t TIM_ExtTRGPolarity, uint16_t ExtTRGFilter);
+// 单独用来配置ETR引脚的预分频器、极性、滤波器这些参数的
+void TIM_ETRConfig(TIM_TypeDef* TIMx, uint16_t TIM_ExtTRGPrescaler, uint16_t TIM_ExtTRGPolarity,
+                   uint16_t ExtTRGFilter);
+```
 
+```c
+/* 一些单独的函数，用于更改一些参数 */
+// 单独写预分频值的，参数1-写入的预分频值，参数2-写入模式
+void TIM_PrescalerConfig(TIM_TypeDef* TIMx, uint16_t Prescaler, uint16_t TIM_PSCReloadMode);
+// 改变计数器的计数模式，参数2-选择新的计数器模式，
+void TIM_CounterModeConfig(TIM_TypeDef* TIMx, uint16_t TIM_CounterMode);
+// 自动重装器预装功能配置，
+void TIM_ARRPreloadConfig(TIM_TypeDef* TIMx, FunctionalState NewState);
+// 给计数器写入一个值
+void TIM_SetCounter(TIM_TypeDef* TIMx, uint16_t Counter);
+// 给自动重装器写入一个值
+void TIM_SetAutoreload(TIM_TypeDef* TIMx, uint16_t Autoreload);
+// 获取当前计数器的值
+uint16_t TIM_GetCounter(TIM_TypeDef* TIMx);
+// 获取当前的预分频器的值
+uint16_t TIM_GetPrescaler(TIM_TypeDef* TIMx);
+```
 
+```c
+/* 操作标志位寄存器的函数，获取和清除标志位，前两个程序中使用，后两个中断处理程序中使用 */
+FlagStatus TIM_GetFlagStatus(TIM_TypeDef* TIMx, uint16_t TIM_FLAG);
+void TIM_ClearFlag(TIM_TypeDef* TIMx, uint16_t TIM_FLAG);
+ITStatus TIM_GetITStatus(TIM_TypeDef* TIMx, uint16_t TIM_IT);
+void TIM_ClearITPendingBit(TIM_TypeDef* TIMx, uint16_t TIM_IT);
+```
 
+### 2、中断函数定义
+
+```c
+void TIM2_IRQHandler(void)
+{
+	if(TIM_GetITStatus(TIM2,TIM_IT_Update) == SET){
+
+		TIM_ClearITPendingBit(TIM2,TIM_IT_Update);
+	}
+
+}
+```
 
 # 整理—缩写表
 
