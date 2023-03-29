@@ -16,19 +16,6 @@ STM32开发方式：
 
 >早起由于IC集成工艺不发达，很多东西都是外设的，比如PWM、ADC、CAN等DSP芯片，原本都是需要芯片外接的，即使是现在，仍然有独立的ADC芯片，比如ADS8364等等。但是现在，PWM、ADC等等东西都已经集成在DSP芯片内，当然，无论如何，芯片总还是会需要外接一些设备实现某种系统，为了与那些外设相区别，就**将集成在芯片内，但是又不属于芯片本身**（比如DSP，是一种微处理器，因此芯片中不属于微处理器的部分都是外设）的称为**“片上外设”**。
 
-# 整理—缩写表
-
-| 缩写 | 全称                                          |
-| ---- | --------------------------------------------- |
-| RCC  | reset and clock control，复位和时钟控制       |
-| AHB  | Advanced High performance Bus，高级高性能总线 |
-| APB  | Advanced  Peripheral Bus，外围总线            |
-|      |                                               |
-|      |                                               |
-|      |                                               |
-|      |                                               |
-|      |                                               |
-
 # start—基本工程
 
 ## 建立工程
@@ -131,11 +118,11 @@ User目录也要添加进包含目录，参考第四步操作。
 int main(void)
 {
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC,ENABLE);
-	GPIO_InitTypeDef GPIO_InitStructuer;
-	GPIO_InitStructuer.GPIO_Mode = GPIO_Mode_Out_PP;
-	GPIO_InitStructuer.GPIO_Pin = GPIO_Pin_13;
-	GPIO_InitStructuer.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_Init(GPIOC,&GPIO_InitStructuer);
+	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_13;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOC,&GPIO_InitStructure);
 	//GPIO_SetBits(GPIOC,GPIO_Pin_13); // 关闭P13的灯
 	GPIO_ResetBits(GPIOC,GPIO_Pin_13); // 点亮P13的灯
 	while(1){
@@ -338,20 +325,20 @@ typedef enum
 
 ## GPIO输出操作
 
-使用库函数进行GPIO输出操作的三步骤：1、启用外设时钟；2、GPIO的初始化，设置GPIO模式；3、使用输出函数进行操作。
+使用库函数进行GPIO输出操作的三步骤：1、启用外设时钟；2、GPIO的初始化，启用满足需要的GPIO输出模式；3、使用输出函数进行操作。
 
 ```c
 int main(void){
 	// 1.使用RCC开启GPIO的时钟
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC,ENABLE);
 	// 2.1 结构体，选择初始化GPIO的一些参数
-	GPIO_InitTypeDef GPIO_InitStructuer;
-	GPIO_InitStructuer.GPIO_Mode = GPIO_Mode_Out_PP;
-	GPIO_InitStructuer.GPIO_Pin = GPIO_Pin_13;
-	GPIO_InitStructuer.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_13;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	// 2.2 初始化
-	GPIO_Init(GPIOC,&GPIO_InitStructuer);
-	// 3.使用输出或输入函数控制GPIO口
+	GPIO_Init(GPIOC,&GPIO_InitStructure);
+	// 3.使用输出函数控制GPIO口输出
 	//GPIO_SetBits(GPIOC,GPIO_Pin_13); // 置1，高电平
 	GPIO_ResetBits(GPIOC,GPIO_Pin_13); // 置0，低电平
 	while(1)
@@ -372,7 +359,7 @@ int main(void){
 
 ## GPIO输入操作
 
-使用库函数读取输入的三步骤：1、启用外设时钟；2、GPIO的初始化，设置GPIO模式；3、使用读取函数进行操作。
+使用库函数读取输入的三步骤：1、启用外设时钟；2、GPIO的初始化，启用满足需要的GPIO输入模式；3、使用读取函数进行操作。
 
 ```c
 /* GPIO_TypeDef* GPIOx——选择外设  uint16_t GPIO_Pin——选择io口  */
@@ -389,6 +376,30 @@ uint16_t GPIO_ReadOutputData(GPIO_TypeDef* GPIOx);
 
 后两个读取输出数据寄存器的，严格来说不是读取输入的函数。
 
+```c
+int main(void){
+	// 1.使用RCC开启GPIO的时钟
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB,ENABLE);
+	// 2.1 结构体，选择初始化GPIO的一些参数
+	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPD;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_13;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	// 2.2 初始化
+	GPIO_Init(GPIOB,&GPIO_InitStructure);
+	// 3.使用读取函数读取IO口输入的数据
+	//GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_13); // 读取某一位
+	//GPIO_ReadInputData(GPIOB,GPIO_Pin_13);    // 读取全部
+	while(1)
+	{
+		
+	}
+}
+
+```
+
+
+
 **实践：按钮控制LED亮灭，光敏传感器控制蜂鸣器响应。**
 
 # C
@@ -397,6 +408,226 @@ uint16_t GPIO_ReadOutputData(GPIO_TypeDef* GPIOx);
 
 51中int是16位存储，STM32中int是32位存储。建议使用stdint.h提供的。
 
+# 中断
+
+## 概述
+
+**中断：**在主程序运行过程中，出现了特定的中断触发条件（中断源），使得CPU暂停当前正在运行的程序，转而去处理中断程序，处理完成后又返回原来被暂停的位置继续运行。（中断过程：中断触发后，CPU停止执行当前程序转而去处理事件，待处理完毕返回到原来被中断的地方继续执行。）
+
+**中断源：**请示CPU中断的请求源。
+
+中断服务程序：中断触发后交由CPU执行的程序。
+
+**中断优先级：**当有多个中断源的时候，CPU根据中断的级别来决定优先响应的中断源。
+
+中断嵌套：一个中断服务程序中有比其更高优先级的中断源，触发这个中断源请求后将去处理这个高优先级的中断服务程序再返回处理低优先级的中断服务程序。多级中断系统，单级中断系统——有无中断嵌套功能。
+
+STM32F1的中断：
+
+- 最多68个可屏蔽中断通道（中断源），包含EXTI、TIM、ADC、USART、SPI、I2C、RTC等多个外设。
+- 中断响应优先级管理：使用**NVIC统一管理中断（分配优先级）**，每个中断通道都拥有**16个可编程的优先等级**，可对优先级进行分组，进一步设置抢占优先级和响应优先级。
+
+中断向量表：由于硬件限制，中断跳转只能调到指定的地址来指向中断服务程序，为了能让硬件跳到一个不固定的中断函数里，就需要在内存中定义一个地址的列表，这些地址列表是固定的。当中断发生后会跳转到这些固定的位置，然后由编译器在这些固定位置加上一条跳转到中断函数的代码，这样就可以使中断跳转跳到如何位置。这些在内存中的固定的地址列表就叫中断向量表，相当于跳到中断函数的一个跳板。
+
+## NVIC
+
+![](img/8.中断NVIC.png)
+
+NVIC（Nested Vectored Interrupt Controller）——  内嵌向量中断控制器。
+
+NVIC 优先级分组：抢占优先级（可中断中断来优先执行的中断级别，用于中断嵌套）、响应优先级（优先执行的中断级别，相当于插队，不能通过中断中断来优先执行，比抢占式级别低）。
+
+优先级控制，通过优先寄存器的4位决定。在程序中，选择好了优先级分组方式后便可设置优先级级别。通过4位来决定两种优先级，每一种的优先级分组方式不同，优先级取值范围也就不同，如下：
+
+![](img/8.中断优先级分组.png)
+
+中断响应顺序：抢占优先级  >   响应优先级 ，抢占优先级和响应优先级均相同的按中断号（默认优先级）进行排队。
+
+## EXTI—结构
+
+**1、EXTI（Extern Interrupt）——  外部中断：**
+
+**外部中断过程：**当GPIO产生电平变化时触发外部中断，外部中断先由NVIC进行裁决后中断CPU主程序，然后CPU执行相应的中断处理程序。（所有的GPIO口都可以触发，只不过相同GPIO_Pin的GPIO口不能同时触发中断，比如PA0、PB0的Pin一样不能同时触发中断,只能选择其中的一个作为中断触发引脚）
+
+**外部中断支持的触发方式：**上升沿、下降沿、双边沿、软件触发。
+
+外部中断占用的通道数：16个GPIO_Pin，外加PVD输出、RTC闹钟、USB唤醒、以太网唤醒，总共20个中断线路。（后四个是来“蹭网”的，蹭外部中断的一个功能——从低功耗模式的停止模式下唤醒STM32；例如对于PVD电源电压检测，当电源从电压过低恢复时就需要借助外部中断退出停止模式；对于RTC闹钟来说，有时为了省电，RTC定一个闹钟后STM32会进入停止模式，等闹钟响的时候再唤醒，这时候就需要借助外部中断，其它类似。）
+
+**中断触发后的响应方式：**中断响应（就是请求中断再由CPU执行中断处理函数）、事件响应（STM32对外部中断增加的额外功能，可以通过选择触发一个事件来触发其它外设操作；事件响应不会去请求CPU处理中断，属于外设之间的联合工作）。
+
+**2、外部中断的结构：**
+
+外部中断总流程框图：
+
+![](img/8.中断结构.png)
+
+AFIO（Alternate function I/O alternate）——备用功能IO口：将IO口连接到EXTI的通道，主要作用是复用功能引脚、中断引脚选择。（相同的Pin的IO口，通过AFIO选择后，只有一个能接到外部中断的通道上，因此相同的Pin的IO口不能同时触发中断）。
+
+AFIO 内部结构框图：
+
+![](img/8.afio.png)
+
+ EXTI 内部结构框图：
+
+![](img/8.事件控制器.png)
+
+1. 20根输入线进入边缘检测电路。（可以选择上升沿触发、下降沿触发）
+2. 软件中断事件寄存器——实现软件触发中断。
+3. 请求挂起寄存器，相当于一个中断标志位，通过读取这个寄存器判断是哪个通道触发的中断。
+4. 中断屏蔽寄存器，用于屏蔽中断，当输出0时就屏蔽调中断信号。
+5. 事件屏蔽寄存器，用于屏蔽事件响应。
+6. 脉冲发生器，用于触发其它外设的动作。
+7. 外设接口和APB总线，可以通过总线访问寄存器。
+
+**3、什么情况下使用外部中断：**
+
+1. 外部触发的突发事件，需要及时读取信号的。（比如旋转编码器、红外遥控接收头的输出信号需要及时读取）
+2. 按键也是外部触发的突然事件，但不建议使用外部中断读取按键，在外部中断中不好处理按键抖动、松手检测等问题，而且按键的输出波形也不是转瞬即逝的，因此要求不高时可以主循环读取，不想用主循环读取，那么可以考虑定时器中断读取，这样可以很好地处理按键抖动和松手检测问题也不会阻塞主程序。
+
+旋转编码器：**用来测量位置、速度或旋转方向的装置**，当其旋转轴旋转时，其输出端可以输出与旋转速度和方向对应的方波信号，读取方波信号的频率和相位信息即可得知旋转轴的速度和方向。类型有：机械触点式、霍尔传感器式、光栅式（只能测速度和位置）。
+
+## EXTI—使用
+
+外部中断的使用分为两步：一是配置外部中断；二是定义中断程序（中断函数）。
+
+### 1、外部中断的配置：
+
+![](img/8.中断结构.png)
+
+外部中断整体结构图如上，简单来说使用外部中断就是配置好资源，将上面的外设GPIO到NVIC的通道打通。具体步骤：
+
+- 第一步：配置RCC，把涉及的外设的时钟都打开。（外设的时钟打开了才能使外设工作）
+- 第二步：配置GPIO，设置目标端口为输入模式。
+- 第三步：配置AFIO，选择使用的GPIO端口以便连接到EXTI。
+- 第四步：配置EXTI，选择触发方式——上升沿、下降沿、双边沿，选择触发响应方式——中断响应、事件响应。
+- 第五步：配置NVIC，给中断选择合适的优先级。
+
+配置示例，使用GPIOB的14端口读入数据：
+
+```c
+void GPIOB14_EXTI_Init(void){
+    /* 第一步：打开使用的外设的时钟 EXTI、NVIC这两个外设的时钟默认一直开启的不需要再配置*/
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
+    /* 第二步：根据结构体里面指定的参数初始化GPIO */
+    GPIO_InitTypeDef GPIO_InitStructure;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_14;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(GPIOB, &GPIO_InitStructure);
+    /* 第三步：  */
+	GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource14);
+    /* 第四步：根据结构体里面指定的参数初始化EXTI */
+    EXTI_InitTypeDef EXTI_InitStruct;
+    EXTI_InitStruct.EXTI_Line = EXTI_Line14;  //  14通道
+    EXTI_InitStruct.EXTI_LineCmd = ENABLE;    // 开启
+    EXTI_InitStruct.EXTI_Mode = EXTI_Mode_Interrupt; // 中断响应
+    EXTI_InitStruct.EXTI_Trigger = EXTI_Trigger_Falling; // 下降沿触发
+    EXTI_Init(&EXTI_InitStruct);
+    /* 第五步：NVIC配置 */
+    // 1.分组方式整个芯片只能使用一种，因此每一个项目只设置一次就行了
+    // 如果将分组放到模块里，那么所有模块的分组都应保持一致；直接放在主函数里设置分组就行了
+    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
+    // 2.根据结构体里面指定的参数初始化NVIC
+    NVIC_InitTypeDef NVIC_InitStruct;
+    NVIC_InitStruct.NVIC_IRQChannel = EXTI15_10_IRQn;   //  选择通道
+    NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;        // 启用
+    NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 1; // 抢占优先级
+    NVIC_InitStruct.NVIC_IRQChannelSubPriority = 1;        // 响应优先级
+    NVIC_Init(&NVIC_InitStruct);
+}
+```
+
+
+
+### 一些库函数原型说明
+
+AFIO的库函数和GPIO的库函数在同一个文件里。AFIO的函数原型说明  stm32f10x_gpio.h ：
+
+```c
+void GPIO_AFIODeInit(void); // 复位AFIO外设
+// 锁定GPIO配置，防止意外更改   （了解）
+void GPIO_PinLockConfig(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin); 
+// 配置AFIO的事件输出功能       （了解）
+void GPIO_EventOutputConfig(uint8_t GPIO_PortSource, uint8_t GPIO_PinSource);
+void GPIO_EventOutputCmd(FunctionalState NewState);
+// 引脚重映射  参数为：(重映射方式，新的状态) 
+void GPIO_PinRemapConfig(uint32_t GPIO_Remap, FunctionalState NewState);
+// 配置AFIO的数据选择器
+void GPIO_EXTILineConfig(uint8_t GPIO_PortSource, uint8_t GPIO_PinSource);
+// 以太网有关的
+void GPIO_ETH_MediaInterfaceConfig(uint32_t GPIO_ETH_MediaInterface);
+```
+
+EXTI的函数原型说明  stm32f10x_exti.h ：
+
+```c
+// 复位，将EXTI的配置清除，恢复到上电的状态
+void EXTI_DeInit(void);
+// 根据结构体里面指定的参数初始化EXTI，用法和GPIO_Init类似
+void EXTI_Init(EXTI_InitTypeDef* EXTI_InitStruct);
+// 结构体初始化，为传入的EXTI_InitTypeDef类型的结构体赋一个默认值
+void EXTI_StructInit(EXTI_InitTypeDef* EXTI_InitStruct);
+// 软件触发外部中断，调用函数，参数为一个中断线，就能软件触发一次这个外部中断
+void EXTI_GenerateSWInterrupt(uint32_t EXTI_Line);
+
+
+/* 操作状态寄存器的标志位的函数 */
+// 程序里使用，查看指定标志位是否置1，
+FlagStatus EXTI_GetFlagStatus(uint32_t EXTI_Line);
+// 程序里使用，对置1的标志位清零
+void EXTI_ClearFlag(uint32_t EXTI_Line);
+// 中断函数里使用，查看中断标志位是否被置1
+ITStatus EXTI_GetITStatus(uint32_t EXTI_Line);
+// 中断函数里使用，清除中断挂起标志位
+void EXTI_ClearITPendingBit(uint32_t EXTI_Line);
+```
+
+NVIC的库函数原型说明  misc.h ：
+
+```c
+// 中断分组，参数为中断分组方式
+void NVIC_PriorityGroupConfig(uint32_t NVIC_PriorityGroup);
+// 根据结构体里面指定的参数初始化NVIC
+void NVIC_Init(NVIC_InitTypeDef* NVIC_InitStruct);
+// 设置中断向量表    （了解）
+void NVIC_SetVectorTable(uint32_t NVIC_VectTab, uint32_t Offset);
+// 系统低功耗配置    （了解）
+void NVIC_SystemLPConfig(uint8_t LowPowerMode, FunctionalState NewState);
+// 系统滴答时钟
+void SysTick_CLKSourceConfig(uint32_t SysTick_CLKSource);
+```
+
+### 2、定义中断程序：
+
+STM32中，中断函数的名字是固定的，每个中断通道都对应一个中断函数，可在 startup_stm32f10x_md.s里查看。
+
+![](img/8.中断函数.png)
+
+```c
+void EXTI15_10_IRQHandler(void)
+{
+	// 14的中断标志位为1，表示14通道的中断进来了
+	if(EXTI_GetITStatus(EXTI_Line14) == SET){
+        
+        
+        
+        
+		// 只要中断标志位置1了程序就会跳转到中断函数
+		// 如果不对中断标志位清0，就会导致一直申请中断
+		EXTI_ClearITPendingBit(EXTI_Line14);
+	}
+}
+```
+
+中断函数编写建议：
+
+1. 中断函数里，最好不要执行耗时过长的代码，中断函数要简短快速，不要刚进中断就执行一个Delay多少毫秒的代码。
+2. 最好不要在中断函数和主函数调用相同的一个函数或者操作同一个硬件。
+
+# 定时器
+
+TIM（Timer）—— 定时器。
 
 
 
@@ -406,4 +637,54 @@ uint16_t GPIO_ReadOutputData(GPIO_TypeDef* GPIOx);
 
 
 
+
+
+
+
+# 整理—缩写表
+
+| 缩写 | 全称                                          |
+| ---- | --------------------------------------------- |
+| RCC  | reset and clock control，复位和时钟控制       |
+| AHB  | Advanced High performance Bus，高级高性能总线 |
+| APB  | Advanced  Peripheral Bus，外围总线            |
+|      |                                               |
+|      |                                               |
+|      |                                               |
+|      |                                               |
+|      |                                               |
+
+# 器件
+
+## LED
+
+LED（light-emitting diode）——  发光二极管。
+
+正向导通，反向不通电。
+
+长脚为正极；二极管内较小一边为正极。
+
+![](img/0.LED.png)
+
+## 有源蜂鸣器
+
+有源蜂鸣器 —— 内部自带振荡源，将正负极接上直流电压即可持续发声，频率固定。
+
+无源蜂鸣器 —— 内部不带振荡源，需要控制器提供振荡脉冲才可发声，调整提供振荡脉冲的频率，可发出不同频率的声音。
+
+![](img/0.蜂鸣器.png)
+
+## 传感器
+
+传感器元件（光敏电阻、热敏电阻、红外接收管等）的电阻会随外界模拟量的变化而变化，通过与定值电阻分压即可得到模拟电压输出，再通过电压比较器进行二值化即可得到数字电压输出。
+
+光敏电阻模块：指示灯亮——输出高电平；指示灯灭——输出低电平。
+
+对射式红外传感器模块：红外传感器接收到红外，输出低电平；红外被阻挡时输出高电平。
+
+## 旋转编码器
+
+机械触点式旋转编码器。
+
+![](img/0.编码器.png)
 
