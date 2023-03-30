@@ -250,15 +250,15 @@ void GPIO_StructInit(GPIO_InitTypeDef* GPIO_InitStruct);
 ```c
 /* GPIO_TypeDef* GPIOx——选择外设  uint16_t GPIO_Pin——选择io口  */
 // 读，读取输入
-uint8_t GPIO_ReadInputDataBit(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin);
-uint16_t GPIO_ReadInputData(GPIO_TypeDef* GPIOx);
-uint8_t GPIO_ReadOutputDataBit(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin);
-uint16_t GPIO_ReadOutputData(GPIO_TypeDef* GPIOx);
+uint8_t GPIO_ReadInputDataBit(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin); 
+uint16_t GPIO_ReadInputData(GPIO_TypeDef* GPIOx); 
+uint8_t GPIO_ReadOutputDataBit(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin); 
+uint16_t GPIO_ReadOutputData(GPIO_TypeDef* GPIOx); 
 // 写，输出
 void GPIO_SetBits(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin);  // 置1
 void GPIO_ResetBits(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin); // 置0
-void GPIO_WriteBit(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin, BitAction BitVal); // 
-void GPIO_Write(GPIO_TypeDef* GPIOx, uint16_t PortVal);
+void GPIO_WriteBit(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin, BitAction BitVal); // 写某位
+void GPIO_Write(GPIO_TypeDef* GPIOx, uint16_t PortVal); // 全输出
 ```
 
 **4、常用参数说明：**
@@ -268,7 +268,7 @@ void GPIO_Write(GPIO_TypeDef* GPIOx, uint16_t PortVal);
 ```c
 typedef struct
 {
-  uint16_t GPIO_Pin;            // GPIO引脚
+  uint16_t GPIO_Pin;            // GPIO引脚的Pin值
   GPIOSpeed_TypeDef GPIO_Speed; // GPIO输出速度
   GPIOMode_TypeDef GPIO_Mode;   // GPIO工作模式 
 }GPIO_InitTypeDef;
@@ -429,7 +429,7 @@ STM32F1的中断：
 - 最多68个可屏蔽中断通道（中断源），包含EXTI、TIM、ADC、USART、SPI、I2C、RTC等多个外设。
 - 中断响应优先级管理：使用**NVIC统一管理中断（分配优先级）**，每个中断通道都拥有**16个可编程的优先等级**，可对优先级进行分组，进一步设置抢占优先级和响应优先级。
 
-中断向量表：由于硬件限制，中断跳转只能调到指定的地址来指向中断服务程序，为了能让硬件跳到一个不固定的中断函数里，就需要在内存中定义一个地址的列表，这些地址列表是固定的。当中断发生后会跳转到这些固定的位置，然后由编译器在这些固定位置加上一条跳转到中断函数的代码，这样就可以使中断跳转跳到如何位置。这些在内存中的固定的地址列表就叫中断向量表，相当于跳到中断函数的一个跳板。
+中断向量表：由于硬件限制，中断跳转只能调到指定的地址来指向中断服务程序，为了能让硬件跳到一个不固定的中断函数里，就需要在内存中定义一个地址的列表，这些地址列表是固定的。当中断发生后会跳转到这些固定的位置，然后由编译器在这些固定位置加上一条跳转到中断函数的代码，这样就可以使中断跳转跳到任何位置。这些在内存中的固定的地址列表就叫中断向量表，相当于跳到中断函数的一个跳板。
 
 ## NVIC
 
@@ -439,7 +439,7 @@ NVIC（Nested Vectored Interrupt Controller）——  内嵌向量中断控制�
 
 NVIC 优先级分组：抢占优先级（可中断中断来优先执行的中断级别，用于中断嵌套）、响应优先级（优先执行的中断级别，相当于插队，不能通过中断中断来优先执行，比抢占式级别低）。
 
-优先级控制，通过优先寄存器的4位决定。在程序中，选择好了优先级分组方式后便可设置优先级级别。通过4位来决定两种优先级，每一种的优先级分组方式不同，优先级取值范围也就不同，如下：
+优先级控制，通过优先寄存器的4位决定。**在程序中，选择好了优先级分组方式后便可设置优先级级别**（具体操作见EXTI—使用）。通过4位来决定两种优先级，每一种的优先级分组方式不同，优先级取值范围也就不同，如下：
 
 ![](img/8.中断优先级分组.png)
 
@@ -504,7 +504,7 @@ AFIO 内部结构框图：
 - 第四步：配置EXTI，选择触发方式——上升沿、下降沿、双边沿，选择触发响应方式——中断响应、事件响应。
 - 第五步：配置NVIC，给中断选择合适的优先级。
 
-配置示例，使用GPIOB的14端口读入数据：
+配置示例，使用GPIOB的14端口：
 
 ```c
 void GPIOB14_EXTI_Init(void){
@@ -592,6 +592,9 @@ NVIC的库函数原型说明  misc.h ：
 void NVIC_PriorityGroupConfig(uint32_t NVIC_PriorityGroup);
 // 根据结构体里面指定的参数初始化NVIC
 void NVIC_Init(NVIC_InitTypeDef* NVIC_InitStruct);
+```
+
+```c
 // 设置中断向量表    （了解）
 void NVIC_SetVectorTable(uint32_t NVIC_VectTab, uint32_t Offset);
 // 系统低功耗配置    （了解）
@@ -698,7 +701,7 @@ STM32的定时器分类：根据复杂度和应用场景分为了高级定时器
 
 
 
-## 定时中断基本结构
+## 中断基本结构
 
 定时中断基本结构图：
 
@@ -707,6 +710,10 @@ STM32的定时器分类：根据复杂度和应用场景分为了高级定时器
 ## 时序
 
 看不懂w(ﾟДﾟ)w，学习数电，自己设计一个计数器。
+
+
+
+
 
 ## 定时中断使用
 
@@ -771,8 +778,9 @@ void TIM_Cmd(TIM_TypeDef* TIMx, FunctionalState NewState);
 void TIM_ITConfig(TIM_TypeDef* TIMx, uint16_t TIM_IT, FunctionalState NewState);
 ```
 
+时基单元的时钟选择函数： 
+
 ```c
-/* 时基单元的时钟选择函数 */
 // 选择内部时钟
 void TIM_InternalClockConfig(TIM_TypeDef* TIMx);
 // 选择ITRx其它定时器的时钟，参数1-选择要配置的定时器，参数2-选择要接入哪个其它的定时器
@@ -791,8 +799,9 @@ void TIM_ETRConfig(TIM_TypeDef* TIMx, uint16_t TIM_ExtTRGPrescaler, uint16_t TIM
                    uint16_t ExtTRGFilter);
 ```
 
+一些单独的函数，用于更改一些参数：
+
 ```c
-/* 一些单独的函数，用于更改一些参数 */
 // 单独写预分频值的，参数1-写入的预分频值，参数2-写入模式
 void TIM_PrescalerConfig(TIM_TypeDef* TIMx, uint16_t Prescaler, uint16_t TIM_PSCReloadMode);
 // 改变计数器的计数模式，参数2-选择新的计数器模式，
@@ -809,8 +818,10 @@ uint16_t TIM_GetCounter(TIM_TypeDef* TIMx);
 uint16_t TIM_GetPrescaler(TIM_TypeDef* TIMx);
 ```
 
+操作标志位寄存器的函数：
+
 ```c
-/* 操作标志位寄存器的函数，获取和清除标志位，前两个程序中使用，后两个中断处理程序中使用 */
+/* 获取和清除标志位，前两个程序中使用，后两个中断处理程序中使用 */
 FlagStatus TIM_GetFlagStatus(TIM_TypeDef* TIMx, uint16_t TIM_FLAG);
 void TIM_ClearFlag(TIM_TypeDef* TIMx, uint16_t TIM_FLAG);
 ITStatus TIM_GetITStatus(TIM_TypeDef* TIMx, uint16_t TIM_IT);
@@ -830,13 +841,222 @@ void TIM2_IRQHandler(void)
 }
 ```
 
+### 3、外部时钟
+
+如果使用外部时钟——以外部时钟模式2为例：
+
+```c
+// 初始化时钟输入的IO口
+GPIO_InitTypeDef GPIO_InitStructure;
+GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
+GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+GPIO_Init(GPIOA,&GPIO_InitStructure);
+// 设置外部时钟模式2
+TIM_ETRClockMode2Config(TIM2,TIM_ExtTRGPSC_OFF,TIM_ExtTRGPolarity_Inverted,0x00);
+```
+
+## 输出比较功能
+
+**OC（Output Compare）输出比较：**输出比较可以通过比较CNT与CCR寄存器值的关系，来对输出电平进行置1、置0或翻转的操作，用于输出一定频率和占空比的PWM波形。（主要用于输出PWM波形的，PWM波形是驱动电机的必要条件，智能车、机器人项目等）
+
+每个高级定时器和通用定时器都拥有4个输出比较通道，高级定时器的前3个通道额外拥有死区生成和互补输出的功能。
+
+STM32F103C8T6只有一个高级定时器——TIM1，三个通用定时器——TIM2、TIM3、TIM4。
+
+**PWM（Pulse Width Modulation）脉冲宽度调制：**PWM波形是一个数字输出信号，由高低电平组成。在具有惯性的系统中，可以通过对一系列脉冲的宽度进行调制，来等效地获得所需要的模拟参量，常应用于电机控速等领域。（实现等效模拟信号输出）
+
+PWM基本思想：例如让LED不断点亮、熄灭、点亮、熄灭，当这个频率足够大时LED就不会闪烁了，而是呈现一个中等亮度，当我们调控点亮、熄灭的时间比例时，就可以让LED呈现出不同的亮度级别。对于电机调速，我们以一个很快的频率给电机通电、断电、通电、断电，那么电机速度就能维持一个中等速度。（应用于惯性系统）
+
+**PWM参数：**高低电平变换周期 $T_s = T_{ON} + T_{OFF}$ 、频率 = $1 / T_S$   、  占空比 = $T_{ON} / T_s$   、   分辨率 = 占空比变化步距  。
+
+<img src="img/10.pwn参数.png" style="zoom:50%;" />
+
+### 输出比较电路
+
+1、通用定时器的输出比较电路：
+
+![](img/10.通用.png)
+
+1. 计数器CNT和CCR1捕获寄存器进行比较后输出一个信号给输出模式控制器，然后这个控制器就会改变输出OC1REF的高低电平。
+2. 可以将REF信号映射到主模式的TRGO输出上去。
+3. 极性选择寄存器，给这个寄存器写0就是不翻转，写1就是翻转。	
+4. 输出使能电路，选择要不要输出。
+
+2、输出比较模式：
+
+![](img/10.通用模式.png)
+
+1. 冻结模式，输出维持原状态。
+2. 有效电平、无效电平：可以先简单理解为高电平、低电平。
+3. PWM模式，主要使用的模式。
+
+3、PWM基本结构：
+
+![](img/10.PWM结构.png)
+
+4、PWM相关参数的计算：
+
+![](img/10.参数计算.png)
+
+PWM频率为`时钟周期 / (PSC+1) / (ARR+1)`。内部时钟周期为72MHz。
+
+高级定时器的输出比较电路：（了解一下，P15——14min）
+
+
+
+### 输出PWM波形
+
+![](img/10.PWM结构.png)
+
+使用定时器输出比较功能输出PWM波形的步骤：
+
+1. 第一步：RCC开启时钟，把要使用的TIM外设、GPIO外设的时钟打开，把输出PWM波形的GPIO口设置为复用推挽输出。
+2. 第二步：时钟源选择。
+3. 第三步：配置时基单元。
+4. 第四步：配置输出比较单元，包括CCR的值、输出比较模式、极性选择、输出使能。
+5. 第五步：启动计数器。
+
+```c
+void PWM_Init(void)
+{
+    // 第一步
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2,ENABLE);
+	
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA,ENABLE);
+	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA,&GPIO_InitStructure);
+	// 第二步
+	TIM_InternalClockConfig(TIM2);
+	// 第三步
+	TIM_TimeBaseInitTypeDef TIM_TimeBaseInitStructure;
+	TIM_TimeBaseInitStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+	TIM_TimeBaseInitStructure.TIM_CounterMode = TIM_CounterMode_Up;
+	TIM_TimeBaseInitStructure.TIM_Period = 100 - 1;   // ARR
+	TIM_TimeBaseInitStructure.TIM_Prescaler = 720 - 1; // PSC
+	TIM_TimeBaseInitStructure.TIM_RepetitionCounter = 0;
+	TIM_TimeBaseInit(TIM2, &TIM_TimeBaseInitStructure);
+	// 第四步
+	TIM_OCInitTypeDef TIM_OCInitStructure;
+	TIM_OCStructInit(&TIM_OCInitStructure);
+	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
+	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
+	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
+	TIM_OCInitStructure.TIM_Pulse = 0;  // CCR
+	TIM_OC1Init(TIM2, &TIM_OCInitStructure);
+	// 第五步
+	TIM_Cmd(TIM2,ENABLE);	
+}
+```
+
+关于引脚重映射的使用（引脚定义表——TIM2_CH1可以从PA0挪到PA15的引脚上，通过AFIO实现引脚重映射）：
+
+```c
+// 1.打开AFIO时钟
+RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO,ENABLE);
+// 2.使用AFIO重映射外设复用的引脚
+GPIO_PinRemapConfig(GPIO_PartialRemap1_TIM2,ENABLE);
+// 3.如果重映射的引脚正好也是调试端口，解除调试端口
+// 可能会关闭了调试通道，会导致ST-Link使用不来了，谨慎使用解除调试端口
+GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable,ENABLE);
+```
+
+
+
+
+
+### 函数原型说明
+
+```c
+/* 配置输出比较单元，四个输出比较单元 */
+void TIM_OC1Init(TIM_TypeDef* TIMx, TIM_OCInitTypeDef* TIM_OCInitStruct);
+void TIM_OC2Init(TIM_TypeDef* TIMx, TIM_OCInitTypeDef* TIM_OCInitStruct);
+void TIM_OC3Init(TIM_TypeDef* TIMx, TIM_OCInitTypeDef* TIM_OCInitStruct);
+void TIM_OC4Init(TIM_TypeDef* TIMx, TIM_OCInitTypeDef* TIM_OCInitStruct);
+```
+
+```c
+/* 给结构体设置默认值 */
+void TIM_OCStructInit(TIM_OCInitTypeDef* TIM_OCInitStruct);
+```
+
+```c
+/* 单独修改CCR寄存器值的函数，重要，需要掌握 */
+void TIM_SetCompare1(TIM_TypeDef* TIMx, uint16_t Compare1);
+void TIM_SetCompare2(TIM_TypeDef* TIMx, uint16_t Compare2);
+void TIM_SetCompare3(TIM_TypeDef* TIMx, uint16_t Compare3);
+void TIM_SetCompare4(TIM_TypeDef* TIMx, uint16_t Compare4);
+```
+
+了解：
+
+```c
+/* 配置强制输出模式  （了解） */
+void TIM_ForcedOC1Config(TIM_TypeDef* TIMx, uint16_t TIM_ForcedAction);
+void TIM_ForcedOC2Config(TIM_TypeDef* TIMx, uint16_t TIM_ForcedAction);
+void TIM_ForcedOC3Config(TIM_TypeDef* TIMx, uint16_t TIM_ForcedAction);
+void TIM_ForcedOC4Config(TIM_TypeDef* TIMx, uint16_t TIM_ForcedAction);
+```
+
+```c
+/* 配置CCR寄存器的预装功能  （了解） */
+void TIM_OC1PreloadConfig(TIM_TypeDef* TIMx, uint16_t TIM_OCPreload);
+void TIM_OC2PreloadConfig(TIM_TypeDef* TIMx, uint16_t TIM_OCPreload);
+void TIM_OC3PreloadConfig(TIM_TypeDef* TIMx, uint16_t TIM_OCPreload);
+void TIM_OC4PreloadConfig(TIM_TypeDef* TIMx, uint16_t TIM_OCPreload);
+/* 配置快速使能  （了解） */
+void TIM_OC1FastConfig(TIM_TypeDef* TIMx, uint16_t TIM_OCFast);
+void TIM_OC2FastConfig(TIM_TypeDef* TIMx, uint16_t TIM_OCFast);
+void TIM_OC3FastConfig(TIM_TypeDef* TIMx, uint16_t TIM_OCFast);
+void TIM_OC4FastConfig(TIM_TypeDef* TIMx, uint16_t TIM_OCFast);
+```
+
+```c
+/* 清除REF （了解） */
+void TIM_ClearOC1Ref(TIM_TypeDef* TIMx, uint16_t TIM_OCClear);
+void TIM_ClearOC2Ref(TIM_TypeDef* TIMx, uint16_t TIM_OCClear);
+void TIM_ClearOC3Ref(TIM_TypeDef* TIMx, uint16_t TIM_OCClear);
+void TIM_ClearOC4Ref(TIM_TypeDef* TIMx, uint16_t TIM_OCClear);
+```
+
+```c
+/* 输出极性设置，使用单独一个函数来进行设置   */
+void TIM_OC1PolarityConfig(TIM_TypeDef* TIMx, uint16_t TIM_OCPolarity);
+void TIM_OC1NPolarityConfig(TIM_TypeDef* TIMx, uint16_t TIM_OCNPolarity);
+void TIM_OC2PolarityConfig(TIM_TypeDef* TIMx, uint16_t TIM_OCPolarity);
+void TIM_OC2NPolarityConfig(TIM_TypeDef* TIMx, uint16_t TIM_OCNPolarity);
+void TIM_OC3PolarityConfig(TIM_TypeDef* TIMx, uint16_t TIM_OCPolarity);
+void TIM_OC3NPolarityConfig(TIM_TypeDef* TIMx, uint16_t TIM_OCNPolarity);
+void TIM_OC4PolarityConfig(TIM_TypeDef* TIMx, uint16_t TIM_OCPolarity);
+```
+
+```c
+/* 单独修改输出使能的 */
+void TIM_CCxCmd(TIM_TypeDef* TIMx, uint16_t TIM_Channel, uint16_t TIM_CCx);
+void TIM_CCxNCmd(TIM_TypeDef* TIMx, uint16_t TIM_Channel, uint16_t TIM_CCxN);
+```
+
+```c
+/* 单独选择输出比较模式 */
+void TIM_SelectOCxM(TIM_TypeDef* TIMx, uint16_t TIM_Channel, uint16_t TIM_OCMode);
+```
+
+
+
+
+
+
+
 # 整理—缩写表
 
 | 缩写 | 全称                                          |
 | ---- | --------------------------------------------- |
 | RCC  | reset and clock control，复位和时钟控制       |
 | AHB  | Advanced High performance Bus，高级高性能总线 |
-| APB  | Advanced  Peripheral Bus，外围总线            |
+| APB  | Advanced  Peripheral Bus，高级外围总线        |
 |      |                                               |
 |      |                                               |
 |      |                                               |
@@ -876,4 +1096,30 @@ LED（light-emitting diode）——  发光二极管。
 机械触点式旋转编码器。
 
 ![](img/0.编码器.png)
+
+## 舵机
+
+舵机是一种根据输入PWM信号占空比来控制输出角度的装置。
+
+输入PWM信号要求：周期为20ms，高电平宽度为0.5ms~2.5ms。
+
+![](img/0.舵机.png)
+
+实际应用：机器人、机械臂，可以使用舵机来控制关节，遥控车、遥控船可以使用舵机来控制方向。
+
+## 直流电机
+
+直流电机是一种将电能转换为机械能的装置，有两个电极，当电极正接时，电机正转，当电极反接时，电机反转。
+
+直流电机属于大功率器件，GPIO口无法直接驱动，需要配合电机驱动电路来操作。
+
+TB6612是一款双路H桥型的直流电机驱动芯片，可以驱动两个直流电机并且控制其转速和方向。
+
+
+
+
+
+
+
+
 
