@@ -1337,7 +1337,7 @@ STM32  ADC的主电路框图：
 
 ![](img/13.ADC的主电路.png)
 
-STM32  ADC的外围电路 —— 触发转换部分框图：
+STM32  ADC的外围电路 —— 触发转换部分框图：（触发转换）
 
 ![](img/13.ADC外围触发.png)
 
@@ -1370,6 +1370,147 @@ ADC 校准：
 - 启动校准前， ADC必须处于关电状态超过至少两个ADC时钟周期。
 
 ## ADC的使用
+
+1. 第一步：开启ADC和GPIO的时钟，设置ADC的分频器。
+2. 第二步：配置GPIO，配置成模拟输出模式。
+3. 第三步：配置多路开关，将GPIO口接入到规则组通道列表里。
+4. 第四步：配置ADC转换器。
+5. 第五步：开启ADC。
+
+```c
+void AD_Init(void)
+{
+    // 第一步
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1,ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA,ENABLE);
+	RCC_ADCCLKConfig(RCC_PCLK2_Div6);
+	// 第二步
+	GPIO_InitTypeDef GPIO_InitStructure;
+ 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AIN;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
+ 	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	// 第三步
+	ADC_RegularChannelConfig(ADC1,ADC_Channel_0,1,ADC_SampleTime_55Cycles5);
+	// 第四步
+	ADC_InitTypeDef ADC_InitStructure;
+	ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
+	ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None;
+	ADC_InitStructure.ADC_Mode = ADC_Mode_Independent;
+	ADC_InitStructure.ADC_ContinuousConvMode = DISABLE;
+	ADC_InitStructure.ADC_NbrOfChannel = 1;
+	ADC_InitStructure.ADC_ScanConvMode = DISABLE;
+	ADC_Init(ADC1,&ADC_InitStructure);
+    // 第五步
+	ADC_Cmd(ADC1,ENABLE);
+	// 第六步：校准
+	ADC_ResetCalibration(ADC1);
+	while(ADC_GetResetCalibrationStatus(ADC1) == SET);
+	ADC_StartCalibration(ADC1);
+	while(ADC_GetCalibrationStatus(ADC1));
+}
+uint16_t AD_GetValue(void)
+{
+    // 读
+	ADC_SoftwareStartConvCmd(ADC1,ENABLE);
+	while(ADC_GetFlagStatus(ADC1,ADC_FLAG_EOC) == RESET);
+	return ADC_GetConversionValue(ADC1);
+}
+```
+
+
+
+
+
+## 函数原型说明
+
+stm32f10x_rcc.h：
+
+```c
+// 配置ADC的CLK的分频器
+void RCC_ADCCLKConfig(uint32_t RCC_PCLK2);
+```
+
+stm32f10x_adc.h：
+
+```c
+// 初始化
+void ADC_DeInit(ADC_TypeDef* ADCx);
+void ADC_Init(ADC_TypeDef* ADCx, ADC_InitTypeDef* ADC_InitStruct);
+void ADC_StructInit(ADC_InitTypeDef* ADC_InitStruct);
+// 开启
+void ADC_Cmd(ADC_TypeDef* ADCx, FunctionalState NewState);
+void ADC_DMACmd(ADC_TypeDef* ADCx, FunctionalState NewState);
+// 中断配置
+void ADC_ITConfig(ADC_TypeDef* ADCx, uint16_t ADC_IT, FunctionalState NewState);
+```
+
+```c
+// 校准
+void ADC_ResetCalibration(ADC_TypeDef* ADCx);
+FlagStatus ADC_GetResetCalibrationStatus(ADC_TypeDef* ADCx);
+void ADC_StartCalibration(ADC_TypeDef* ADCx);
+FlagStatus ADC_GetCalibrationStatus(ADC_TypeDef* ADCx);
+```
+
+```c
+// 软件触发
+void ADC_SoftwareStartConvCmd(ADC_TypeDef* ADCx, FunctionalState NewState);
+```
+
+```c
+// 配置间断模式
+// 每隔几个通道间断一次
+void ADC_DiscModeChannelCountConfig(ADC_TypeDef* ADCx, uint8_t Number);
+// 是否启用
+void ADC_DiscModeCmd(ADC_TypeDef* ADCx, FunctionalState NewState);
+```
+
+```c
+// 规则组通道配置
+void ADC_RegularChannelConfig(ADC_TypeDef* ADCx, uint8_t ADC_Channel, uint8_t Rank, uint8_t ADC_SampleTime);
+// ADC外部触发转换控制
+void ADC_ExternalTrigConvCmd(ADC_TypeDef* ADCx, FunctionalState NewState);
+// ADC获取转换值
+uint16_t ADC_GetConversionValue(ADC_TypeDef* ADCx);
+// ADC获取双模式转换值
+uint32_t ADC_GetDualModeConversionValue(void);
+
+```
+
+```c
+// 关于注入组的
+void ADC_AutoInjectedConvCmd(ADC_TypeDef* ADCx, FunctionalState NewState);
+void ADC_InjectedDiscModeCmd(ADC_TypeDef* ADCx, FunctionalState NewState);
+void ADC_ExternalTrigInjectedConvConfig(ADC_TypeDef* ADCx, uint32_t ADC_ExternalTrigInjecConv);
+void ADC_ExternalTrigInjectedConvCmd(ADC_TypeDef* ADCx, FunctionalState NewState);
+void ADC_SoftwareStartInjectedConvCmd(ADC_TypeDef* ADCx, FunctionalState NewState);
+FlagStatus ADC_GetSoftwareStartInjectedConvCmdStatus(ADC_TypeDef* ADCx);
+void ADC_InjectedChannelConfig(ADC_TypeDef* ADCx, uint8_t ADC_Channel, uint8_t Rank, uint8_t ADC_SampleTime);
+void ADC_InjectedSequencerLengthConfig(ADC_TypeDef* ADCx, uint8_t Length);
+void ADC_SetInjectedOffset(ADC_TypeDef* ADCx, uint8_t ADC_InjectedChannel, uint16_t Offset);
+uint16_t ADC_GetInjectedConversionValue(ADC_TypeDef* ADCx, uint8_t ADC_InjectedChannel);
+```
+
+```c
+// 对模拟看门狗进行配置的
+// 启动
+void ADC_AnalogWatchdogCmd(ADC_TypeDef* ADCx, uint32_t ADC_AnalogWatchdog); 
+// 配置高低阈值
+void ADC_AnalogWatchdogThresholdsConfig(ADC_TypeDef* ADCx, uint16_t HighThreshold, uint16_t LowThreshold);
+// 配置看门的通道
+void ADC_AnalogWatchdogSingleChannelConfig(ADC_TypeDef* ADCx, uint8_t ADC_Channel);
+// 温度传感器、内部参考电压控制，开启内部通道的
+void ADC_TempSensorVrefintCmd(FunctionalState NewState);
+```
+
+```c
+// 关于标志位的，获取、清除，程序内使用、中断中使用
+FlagStatus ADC_GetFlagStatus(ADC_TypeDef* ADCx, uint8_t ADC_FLAG);
+void ADC_ClearFlag(ADC_TypeDef* ADCx, uint8_t ADC_FLAG);
+ITStatus ADC_GetITStatus(ADC_TypeDef* ADCx, uint16_t ADC_IT);
+void ADC_ClearITPendingBit(ADC_TypeDef* ADCx, uint16_t ADC_IT);
+```
 
 # DMA
 
