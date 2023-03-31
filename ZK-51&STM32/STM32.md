@@ -457,7 +457,7 @@ NVIC 优先级分组：抢占优先级（可中断中断来优先执行的中断
 
 **1、EXTI（Extern Interrupt）——  外部中断：**
 
-**外部中断过程：**当GPIO产生电平变化时触发外部中断，外部中断先由NVIC进行裁决后中断CPU主程序，然后CPU执行相应的中断处理程序。（所有的GPIO口都可以触发，只不过相同GPIO_Pin的GPIO口不能同时触发中断，比如PA0、PB0的Pin一样不能同时触发中断,只能选择其中的一个作为中断触发引脚）
+**外部中断过程：**当GPIO产生电平变化时触发外部中断，外部中断先由NVIC进行裁决后中断CPU主程序，然后CPU执行相应的中断处理程序。（所有的GPIO口都可以触发，只不过相同GPIO_Pin的GPIO口不能同时触发中断，比如PA0、PB0的Pin一样不能同时触发中断，只能选择其中的一个作为中断触发引脚）
 
 **外部中断支持的触发方式：**上升沿、下降沿、双边沿、软件触发。
 
@@ -471,13 +471,11 @@ NVIC 优先级分组：抢占优先级（可中断中断来优先执行的中断
 
 ![](img/8.中断结构.png)
 
-AFIO（Alternate function I/O alternate）——备用功能IO口：将IO口连接到EXTI的通道，主要作用是复用功能引脚、中断引脚选择。（相同的Pin的IO口，通过AFIO选择后，只有一个能接到外部中断的通道上，因此相同的Pin的IO口不能同时触发中断）。
-
-AFIO 内部结构框图：
+AFIO（Alternate function I/O alternate）—— 备用功能IO口：将IO口连接到EXTI的通道，主要功能是复用功能引脚和用于中断引脚选择。（相同的Pin的IO口，通过AFIO选择后，只有一个能接到外部中断的通道上，因此相同的Pin的IO口不能同时触发中断）。AFIO 内部结构框图如下：
 
 ![](img/8.afio.png)
 
- EXTI 内部结构框图：
+ EXTI 内部结构框图如下：
 
 ![](img/8.事件控制器.png)
 
@@ -506,7 +504,7 @@ AFIO 内部结构框图：
 
 外部中断整体结构图如上，简单来说使用外部中断就是配置好资源，将上面的外设GPIO到NVIC的通道打通。具体步骤：
 
-- 第一步：配置RCC，把涉及的外设的时钟都打开。（外设的时钟打开了才能使外设工作）
+- 第一步：配置RCC，把涉及的外设的时钟都打开。（外设的时钟打开了才能使外设工作，EXTI和NVIC的时钟默认一直开启）
 - 第二步：配置GPIO，设置目标端口为输入模式。
 - 第三步：配置AFIO，选择使用的GPIO端口以便连接到EXTI。
 - 第四步：配置EXTI，选择触发方式——上升沿、下降沿、双边沿，选择触发响应方式——中断响应、事件响应。
@@ -642,9 +640,9 @@ void EXTI15_10_IRQHandler(void)
 
 TIM（Timer）—— 定时器：对输入的时钟进行计数，并在计数值达到设定值时触发中断。
 
-STM32的定时器包含16位计数器、预分频器、自动重装寄存器的时基单元，**在72MHz计数时钟下可以实现最大59.65s的定时**。（中断频率=72M/65535/65535，中断频率的倒数即为59.65）
+STM32的定时器包含16位计数器、预分频器、自动重装寄存器的时基单元，**在72MHz计数时钟下可以实现最大59.65s的定时**。（`中断频率=72M/65535/65535`（时钟频率/分频系数/计数值n=计数n次的频率，倒数即可得到计数n次的时间），中断频率的倒数即为59.65）
 
-STM32的定时器功能：不仅具备基本的**定时中断功能**，而且还包含**内外时钟源选择、输入捕获、输出比较、编码器接口、主从触发模式**等多种功能。	
+STM32的定时器功能：不仅具备基本的**定时中断功能**，而且还包含**内外时钟源选择、输入捕获、输出比较、编码器接口、主从触发模式（主模式、从模式、触发模式）**等多种功能。	
 
 STM32的定时器分类：根据复杂度和应用场景分为了高级定时器、通用定时器、基本定时器三种类型。
 
@@ -727,7 +725,7 @@ STM32的定时器分类：根据复杂度和应用场景分为了高级定时器
 
 ### 1、外部中断配置
 
-1. 第一步：RCC开启时钟，打开后定时器的基准时钟和整个外设的工作时钟都会同时打开。
+1. 第一步：RCC开启定时器时钟，打开后定时器的基准时钟和整个外设的工作时钟都会同时打开。
 2. 第二步：选择时钟源。
 3. 第三步：配置时基单元，包括预分频器、自动重装器、计数模式等。
 4. 第四步：配置输出中断控制，允许更新中断输出到NVIC。
@@ -849,7 +847,7 @@ void TIM2_IRQHandler(void)
 }
 ```
 
-### 3、外部时钟
+### 3、使用外部时钟
 
 如果使用外部时钟——以外部时钟模式2为例：
 
@@ -905,6 +903,8 @@ TIM_ETRClockMode2Config(TIM2,TIM_ExtTRGPSC_OFF,TIM_ExtTRGPolarity_Inverted,0x00)
 
 ![](img/10.PWM结构.png)
 
+通过改变CCR的值，就可以改变周期内高低电平的占比。
+
 4、PWM相关参数的计算：
 
 ![](img/10.参数计算.png)
@@ -932,10 +932,9 @@ void PWM_Init(void)
 {
     // 第一步
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2,ENABLE);
-	
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA,ENABLE);
 	GPIO_InitTypeDef GPIO_InitStructure;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP; // 复用推挽输出
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOA,&GPIO_InitStructure);
@@ -973,8 +972,6 @@ GPIO_PinRemapConfig(GPIO_PartialRemap1_TIM2,ENABLE);
 // 可能会关闭了调试通道，会导致ST-Link使用不来了，谨慎使用解除调试端口
 GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable,ENABLE);
 ```
-
-
 
 
 
@@ -1117,7 +1114,102 @@ void TIM_SelectOCxM(TIM_TypeDef* TIMx, uint16_t TIM_Channel, uint16_t TIM_OCMode
 
 PWMI模式（PWM输入模式），使用两个通道同时捕获一个引脚，这样就可以同时测量周期和占空比。TI1FP1通道设置上升沿触发，TI1FP2通道设置下降沿触发，这样CCR1的计数值就是一整个周期的计数值，CCR2就是高电平的计数值，那么占空比 就为`CCR2 / CCR1`。
 
+### 输入捕获—使用
 
+1. 第一步：把GPIO、TIM的时钟打开。
+2. 第二步：GPIO初始化，上拉或浮空输入模式。
+3. 第三步：配置时基单元。
+4. 第四步：配置输入捕获单元。
+5. 第五步：选择从模式触发源选择。
+6. 第六部：选择从模式触发后执行的操作。
+7. 第七步：开启定时器。
+
+示例——使用输入捕获功能测频率：
+
+```c
+void IC_Init(void)
+{	/* 第一步： */
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3,ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA,ENABLE);
+	/* 第二步： */
+	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA,&GPIO_InitStructure);
+	// 配置定时器TIM3的时钟
+	TIM_InternalClockConfig(TIM3);
+	/* 第三步： */
+	TIM_TimeBaseInitTypeDef TIM_TimeBaseInitStructure;
+	TIM_TimeBaseInitStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+	TIM_TimeBaseInitStructure.TIM_CounterMode = TIM_CounterMode_Up;
+	TIM_TimeBaseInitStructure.TIM_Period = 65536 - 1;   // ARR
+	TIM_TimeBaseInitStructure.TIM_Prescaler = 72 - 1; // PSC
+	TIM_TimeBaseInitStructure.TIM_RepetitionCounter = 0;
+	TIM_TimeBaseInit(TIM3, &TIM_TimeBaseInitStructure);
+	/* 第四步： */
+	TIM_ICInitTypeDef TIM_ICInitStructure;
+	TIM_ICInitStructure.TIM_Channel = TIM_Channel_1;
+	TIM_ICInitStructure.TIM_ICFilter = 0xF;
+	TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Rising;
+	TIM_ICInitStructure.TIM_ICPrescaler = TIM_ICPSC_DIV1;
+	TIM_ICInitStructure.TIM_ICSelection = TIM_ICSelection_DirectTI;
+	TIM_ICInit(TIM3, &TIM_ICInitStructure);
+	/* 第五步： */
+	TIM_SelectInputTrigger(TIM3,TIM_TS_TI1FP1);
+	TIM_SelectSlaveMode(TIM3,TIM_SlaveMode_Reset);
+	/* 第六步： */
+	TIM_Cmd(TIM3,ENABLE);
+}
+```
+
+示例——使用输入捕获功能测频率、测占空比：
+
+
+
+
+
+### 函数原型说明
+
+```c
+// 配置捕获单元，只配置一个捕获通道
+void TIM_ICInit(TIM_TypeDef* TIMx, TIM_ICInitTypeDef* TIM_ICInitStruct);
+// 初始化捕获单元，可以快速配置两个捕获通道
+void TIM_PWMIConfig(TIM_TypeDef* TIMx, TIM_ICInitTypeDef* TIM_ICInitStruct);
+// 结构体初始化赋默认值 
+void TIM_ICStructInit(TIM_ICInitTypeDef* TIM_ICInitStruct);
+
+```
+
+主模式、从模式、触发模式：
+
+```c
+// 选择输入触发源TRGI，从模式触发源选择 
+void TIM_SelectInputTrigger(TIM_TypeDef* TIMx, uint16_t TIM_InputTriggerSource);
+// 选择输出触发源TRGO，主模式输出的触发源
+void TIM_SelectOutputTrigger(TIM_TypeDef* TIMx, uint16_t TIM_TRGOSource);
+// 选择从模式
+void TIM_SelectSlaveMode(TIM_TypeDef* TIMx, uint16_t TIM_SlaveMode);
+```
+
+单独配置通道1、2、3、4的分频器：
+
+```c
+void TIM_SetIC1Prescaler(TIM_TypeDef* TIMx, uint16_t TIM_ICPSC);
+void TIM_SetIC2Prescaler(TIM_TypeDef* TIMx, uint16_t TIM_ICPSC);
+void TIM_SetIC3Prescaler(TIM_TypeDef* TIMx, uint16_t TIM_ICPSC);
+void TIM_SetIC4Prescaler(TIM_TypeDef* TIMx, uint16_t TIM_ICPSC);
+void TIM_SetClockDivision(TIM_TypeDef* TIMx, uint16_t TIM_CKD);
+```
+
+分别读取定时器的四个通道的CCR：
+
+```c
+uint16_t TIM_GetCapture1(TIM_TypeDef* TIMx);
+uint16_t TIM_GetCapture2(TIM_TypeDef* TIMx);
+uint16_t TIM_GetCapture3(TIM_TypeDef* TIMx);
+uint16_t TIM_GetCapture4(TIM_TypeDef* TIMx);
+```
 
 
 
@@ -1145,25 +1237,26 @@ EXTI外设中的：
 | ---- | -------------------------------------------------------- |
 | NVIC | Nested Vectored Interrupt Controller，内嵌向量中断控制器 |
 | AFIO | Alternate function I/O alternate，备用功能IO口           |
-| EXTI | Extern Interrupt，外部中断                               |
+| EXTI | External Interrupt，外部中断                             |
 |      |                                                          |
 
 TIM外设中的：
 
-| 缩写 | 全称                                      |
-| ---- | ----------------------------------------- |
-| TIM  | Timer，定时器                             |
-| TRGI | Trigger Input，触发输入                   |
-| TRGO | Trigger Output，触发输出                  |
-| OC   | Output Compare，输出比较                  |
-| PWM  | Pulse Width Modulation，脉冲宽度调制      |
-| CNT  | count，计数器                             |
-| CCR  | capture/compare register，捕获/比较寄存器 |
-| ARR  | auto reload register，自动重装载寄存器    |
-| PSC  | Prescaler，预分频器                       |
-| IC   | Input Capture，输入捕获                   |
-|      |                                           |
-|      |                                           |
+| 缩写 | 全称                                                         |
+| ---- | ------------------------------------------------------------ |
+| TIM  | Timer，定时器                                                |
+| TRGI | Trigger Input，触发输入                                      |
+| TRGO | Trigger Output，触发输出                                     |
+| ETR  | External  Trigger Refenrence，外部触发输入，<br>External  Timer Refenrence，外部定时器参考（不懂...） |
+| OC   | Output Compare，输出比较                                     |
+| PWM  | Pulse Width Modulation，脉冲宽度调制                         |
+| CNT  | count，计数器                                                |
+| CCR  | capture/compare register，捕获/比较寄存器                    |
+| ARR  | auto reload register，自动重装载寄存器                       |
+| PSC  | Prescaler，预分频器                                          |
+| IC   | Input Capture，输入捕获                                      |
+|      |                                                              |
+|      |                                                              |
 
 
 
