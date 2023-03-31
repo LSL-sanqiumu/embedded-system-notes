@@ -1163,7 +1163,7 @@ void IC_Init(void)
 }
 ```
 
-示例——使用输入捕获功能测频率、测占空比：
+示例——使用输入捕获功能测频率、测占空比：使用TIM_PWMIConfig。
 
 
 
@@ -1215,7 +1215,93 @@ uint16_t TIM_GetCapture4(TIM_TypeDef* TIMx);
 
 ## TIM编码器接口
 
+Encoder Interface —— 编码器接口：
 
+- 编码器接口可接收增量（正交）编码器的信号，**根据编码器旋转产生的正交信号脉冲，自动控制CNT自增或自减**，从而指示编码器的**位置、旋转方向和旋转速度**。
+- **每个高级定时器和通用定时器都拥有1个**编码器接口。（如果一个定时器配置成了编码器，基本上干不了其它活了）
+- TIM编码器接口的两个输入引脚借用了输入捕获的通道1和通道2。
+
+编码器：是一种将旋转位移转换成一串数字脉冲信号的旋转式传感器，可把角位移或直线位移转换成电平信号。
+
+正交编码器：
+
+![](img/12.正交编码器.png)
+
+### 编码器接口电路
+
+编码器接口电路的基本结构：
+
+![](img/12.编码器接口电路.png)
+
+编码器接口托管计数时钟和计数方向，计数器自增自减受编码器接口控制。
+
+### 编码器接口基本结构
+
+![](img/12.基本结构.png)
+
+编码器接口工作逻辑：
+
+![](img/12.编码器工作模式.png)
+
+### 编码器接口使用
+
+1. 第一步：开启GPIO和定时器的时钟。
+2. 第二步：配置GPIO的输入模式。
+3. 第三步：配置时基单元。
+4. 第四步：配置输入捕获单元，只配置输入极性和滤波器即可。
+5. 第五步：配置编码器接口模式。
+6. 第六部：启动定时器。
+7. 编码器接口就是一个带方向控制的外部时钟，会托管内部时钟，因此不需要为定时器配置内部时钟。
+
+```c
+void Encode_Init(void)
+{
+    // 第一步
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3,ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA,ENABLE);
+	// 第二步
+	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6 | GPIO_Pin_7;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA,&GPIO_InitStructure);
+	
+	// 第三步
+	TIM_TimeBaseInitTypeDef TIM_TimeBaseInitStructure;
+	TIM_TimeBaseInitStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+	TIM_TimeBaseInitStructure.TIM_CounterMode = TIM_CounterMode_Up;
+	TIM_TimeBaseInitStructure.TIM_Period = 65536 - 1;   // ARR
+	TIM_TimeBaseInitStructure.TIM_Prescaler = 1 - 1; // PSC
+	TIM_TimeBaseInitStructure.TIM_RepetitionCounter = 0;
+	TIM_TimeBaseInit(TIM3, &TIM_TimeBaseInitStructure);
+	// 第四步
+	TIM_ICInitTypeDef TIM_ICInitStructure;
+	TIM_ICStructInit(&TIM_ICInitStructure);
+	TIM_ICInitStructure.TIM_Channel = TIM_Channel_1;
+	TIM_ICInitStructure.TIM_ICFilter = 0xF;
+	TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Rising;
+	TIM_ICInit(TIM3, &TIM_ICInitStructure);
+	TIM_ICInitStructure.TIM_Channel = TIM_Channel_2;
+	TIM_ICInitStructure.TIM_ICFilter = 0xF;
+	TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Rising;
+	TIM_ICInit(TIM3, &TIM_ICInitStructure);
+	// 第五步
+	TIM_EncoderInterfaceConfig(TIM3,TIM_EncoderMode_TI12,TIM_ICPolarity_Rising,TIM_ICPolarity_Rising);
+	// 第六步
+	TIM_Cmd(TIM3,ENABLE);
+}
+```
+
+
+
+## 函数原型说明
+
+```c
+// 定时器编码器接口配置，
+// 参数1——定时器，参数2——编码器接口模式，参数3、参数4——通道1、通道2的电平极性
+void TIM_EncoderInterfaceConfig(TIM_TypeDef* TIMx, uint16_t TIM_EncoderMode,
+                                uint16_t TIM_IC1Polarity, uint16_t TIM_IC2Polarity);
+```
 
 # ELSE
 
@@ -1331,7 +1417,7 @@ OLED屏幕。
 
 **TIM输出捕获功能部分：**1、输入捕获模式测频率；2、PWMI模式测频率和占空比。
 
-**TIM输入捕获功能部分：**1、
+**TIM输入捕获功能部分：**1、计算频率；2、计算频率和占空比。
 
 
 
