@@ -1262,7 +1262,7 @@ p = &arr[2];   // p指向二维数组的最后一个数组
 
 **算术运算符：**
 
-![](img/1.compute.png)
+![](imgC++/1.compute.png)
 
 表达式求值前，小整型的会被提升为较大的整数类型，所有运算对象最终会转换成统一类型。
 
@@ -1374,9 +1374,9 @@ size_t n3 = sizeof *p; //sizeof(*p)
 cout << n1 << endl;
 ```
 
-![](img/2.sizeof.png)
+![](imgC++/2.sizeof.png)
 
-![](img/3.sizeof.png)
+![](imgC++/3.sizeof.png)
 
 ```c++
 int ia[10];
@@ -1498,7 +1498,7 @@ try语句和异常处理：（Java中也差不多是这样）
 - **try语句块**：以 `try`关键词开始，以一个或多个 `catch`字句结束。 `try`语句块中的代码抛出的异常通常会被某个 `catch`捕获并处理。 `catch`子句也被称为**异常处理代码**。
 - **异常类**：用于在 `throw`表达式和相关的 `catch`子句之间传递异常的具体信息。
 
-![](img/4.exception.png)
+![](imgC++/4.exception.png)
 
 ```c++
 #include <exception>
