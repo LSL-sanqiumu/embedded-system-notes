@@ -2152,7 +2152,11 @@ USART （Universal Synchronous/Asynchronous Receiver/Transmitter）——   通�
 
 ![](img/16.USART波特率发生器.png)
 
+### 数据模式：
 
+HEX模式，以原始数据显示——收到什么数据就把什么数据显示出来。
+
+![](img/16.USART数据模式.png)
 
 
 
@@ -2217,9 +2221,9 @@ void USART_ClearITPendingBit(USART_TypeDef* USARTx, uint16_t USART_IT);
 
 
 
-## 串口使用
+## 串口通信
 
-### 发送
+### 发送数据
 
 ```c
 void Serial_Init(void)
@@ -2274,9 +2278,7 @@ void Serial_SendString(char* String)
 {
 	uint16_t i;
 	for(i = 0; String[i] != '\0'; i++) {
-	
 		Serial_SendByte(String[i]);
-	
 	}
 }
 /* 发送字符形式的数字 */
@@ -2337,7 +2339,7 @@ int main(void){
 }
 ```
 
-### 接收
+### 接收数据
 
 ```c
 void Serial_Init(void)
@@ -2478,25 +2480,162 @@ int main(void){
 
 
 
-## 补充
+## 数据包的发送与接收
 
-### 数据模式：
+### 数据包介绍
 
-HEX模式，以原始数据显示——收到什么数据就把什么数据显示出来。
-
-![](img/16.USART数据模式.png)
-
-### HEX：
+HEX数据包打包，添加包头包尾，缺点是灵活性不足，包头包尾容易和载荷重复：
 
 ![](img/16.USART-HEX数据包.png)
 
-![](img/16.USART-HEX数据包接收.png)
-
-### 文本：
+文本数据包：数据直观易理解，比较适合一些输入指令进行人机交互的场合，比如蓝牙模块常用的AT指令、CNC和3D打印常用的G代码都是文本数据包的格式，缺点就是解析效率低，比如发送100，HEX数据包就直接是100，文本数据包就是发送三个字节`1`、`0`、`0`，收到后还要转为数据。
 
 ![](img/16.USART-文本数据包.png)
 
+### 数据包的接收
+
+数据包的发送过程很简单，无论是字符或者数字，直接发送即可，发送过程自主可控，想发啥就发啥。
+
+接收固定包长的HEX数据包：数据包有明显的先后关联性，对应数据包中的包头、数据、包尾这3种状态我们需要有不同的处理逻辑，所以我们需要在程序中设计一个能记住不同状态的机制，在不同的状态执行不同的操作，同时还要进行状态的合理转移，这种程序设计思维叫做“状态机”。
+
+使用状态机来接收数据包：状态转移图对于设计状态机程序是必要的。
+
+![](img/16.USART-HEX数据包接收.png)
+
+如上，定义三个状态，S的三个值代表三个状态；程序执行流程：
+
+- 如果在第一个状态，收到的不是FF，那就仍然是0，不会进入下一状态，等待数据包包头的出现。
+- S=0，进中断，进入第一个状态的程序，判断数据是不是包头FF，如果是代表收到包头，置S=1，退出中断。
+- 下次再进中断，根据S=1，就可以进行接收数据的程序了，如果没收够数据就一直是接收状态，收够了就置S=2转向下一状态。
+- S=2，等待包尾，置S=0，回到最初状态。
+
+状态机思维，使用基本步骤：
+
+- 先根据项目要求定义状态，画几个圈表示状态。
+- 考虑好各个状态在什么情况下会转移，如何转移，画好线和转移条件。
+- 根据图来编程。
+
 ![](img/16.USART-文本数据包接收.png)
+
+文本数据包的接收，数据包是可变的不是固定长度的，接收数据时需要时刻判断是不是包尾数据。
+
+### HEX数据包发送与接收
+
+```c
+/* 初始化 */
+
+uint8_t Serial_TXPacket[4]; // 用于发送数据包
+uint8_t Serial_RxPacket[4]; // 用于接收数据包的区域
+uint8_t Serial_RxFlag;      // 接收数据包的标志位
+
+void Serial_Init(void)
+{
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
+	
+	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA,&GPIO_InitStructure);
+	
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA,&GPIO_InitStructure);
+	
+	USART_InitTypeDef USART_InitStructure;
+	USART_InitStructure.USART_BaudRate = 9600;
+	USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+	USART_InitStructure.USART_Mode = USART_Mode_Tx | USART_Mode_Rx;
+	USART_InitStructure.USART_Parity = USART_Parity_No;
+	USART_InitStructure.USART_StopBits = USART_StopBits_1;
+	USART_InitStructure.USART_WordLength = USART_WordLength_8b;
+	USART_Init(USART1,&USART_InitStructure);
+	
+	USART_ITConfig(USART1,USART_IT_RXNE,ENABLE);
+	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
+	NVIC_InitTypeDef NVIC_InitStructure;
+	NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+	NVIC_Init(&NVIC_InitStructure);
+	
+	USART_Cmd(USART1, ENABLE);
+}
+```
+
+```c
+/* 发送HEX数据包 */
+void Serial_SendByte(uint16_t Byte)
+{
+	USART_SendData(USART1, Byte);
+	while(USART_GetFlagStatus(USART1,USART_FLAG_TXE)==RESET);
+}
+void Serial_SendArray(uint8_t* Array, uint16_t Length)
+{
+	uint16_t i;
+	for(i = 0; i < Length; i++) {
+		Serial_SendByte(Array[i]);
+	}
+}
+  // 给Serial_TXPacket数组赋值，然后调用该函数发送定长数据包 
+void Serial_SendPacket(void)
+{
+	Serial_SendByte(0xFF);
+	Serial_SendArray(Serial_TXPacket, 4);
+	Serial_SendByte(0xFE);
+}
+```
+
+```c
+/* 接收HEX数据包：使用中断，使用状态机 */
+uint8_t Serial_GetRxFlag(void)
+{
+	if(Serial_RxFlag == 1) {
+		Serial_RxFlag = 0;
+		return 1;
+	}
+	return 0;
+}
+// 接收到的数据存储到Serial_RxPacket数组
+void USART1_IRQHandler(void)
+{
+	static uint8_t RxState = 0;
+	static uint8_t pRxPacket = 0;
+	if (USART_GetITStatus(USART1, USART_IT_RXNE) == SET)
+	{
+		uint8_t RxData = USART_ReceiveData(USART1);
+		if (RxState == 0)
+		{
+			if (RxData == 0xFF)
+			{
+				RxState = 1;
+				pRxPacket = 0;
+			}
+		}
+		else if (RxState == 1)
+		{
+			Serial_RxPacket[pRxPacket] = RxData;
+			pRxPacket ++;
+			if (pRxPacket >= 4)
+			{
+				RxState = 2;
+			}
+		}
+		else if (RxState == 2)
+		{
+			if (RxData == 0xFE)
+			{
+				RxState = 0;
+				Serial_RxFlag = 1;
+			}
+		}
+		USART_ClearITPendingBit(USART1, USART_IT_RXNE);
+	}
+}
+```
 
 
 
@@ -2650,7 +2789,7 @@ TB6612是一款双路H桥型的直流电机驱动芯片，可以驱动两个直�
 
 **DMA部分：**1、DMA转换数据；2、使用DMA转换ADC多通道转换后的数据。
 
-
+**USART部分：**1、数据发送，功能函数封装——发送字符串、发送数组等；2、数据接收；3、数据包的接收；4、数据包的发送。
 
 
 
