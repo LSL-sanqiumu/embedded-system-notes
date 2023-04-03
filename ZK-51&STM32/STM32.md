@@ -2154,7 +2154,335 @@ USART （Universal Synchronous/Asynchronous Receiver/Transmitter）——   通�
 
 
 
+
+
+## 函数原型说明
+
+```c
+void USART_DeInit(USART_TypeDef* USARTx);
+void USART_Init(USART_TypeDef* USARTx, USART_InitTypeDef* USART_InitStruct);
+void USART_StructInit(USART_InitTypeDef* USART_InitStruct);
+```
+
+```c
+/* 配置同步时钟输出 */
+void USART_ClockInit(USART_TypeDef* USARTx, USART_ClockInitTypeDef* USART_ClockInitStruct);
+void USART_ClockStructInit(USART_ClockInitTypeDef* USART_ClockInitStruct);
+```
+
+```c
+void USART_Cmd(USART_TypeDef* USARTx, FunctionalState NewState);
+void USART_ITConfig(USART_TypeDef* USARTx, uint16_t USART_IT, FunctionalState NewState);
+void USART_DMACmd(USART_TypeDef* USARTx, uint16_t USART_DMAReq, FunctionalState NewState);
+```
+
+```c
+/* 不常用 */
+// 设置地址
+void USART_SetAddress(USART_TypeDef* USARTx, uint8_t USART_Address);
+// 唤醒
+void USART_WakeUpConfig(USART_TypeDef* USARTx, uint16_t USART_WakeUp);
+void USART_ReceiverWakeUpCmd(USART_TypeDef* USARTx, FunctionalState NewState);
+void USART_LINBreakDetectLengthConfig(USART_TypeDef* USARTx, uint16_t USART_LINBreakDetectLength);
+void USART_LINCmd(USART_TypeDef* USARTx, FunctionalState NewState);
+```
+
+```c
+/* 重要 */
+void USART_SendData(USART_TypeDef* USARTx, uint16_t Data);
+uint16_t USART_ReceiveData(USART_TypeDef* USARTx);
+```
+
+```c
+/* 不常用 */
+void USART_SendBreak(USART_TypeDef* USARTx);
+void USART_SetGuardTime(USART_TypeDef* USARTx, uint8_t USART_GuardTime);
+void USART_SetPrescaler(USART_TypeDef* USARTx, uint8_t USART_Prescaler);
+void USART_SmartCardCmd(USART_TypeDef* USARTx, FunctionalState NewState);
+void USART_SmartCardNACKCmd(USART_TypeDef* USARTx, FunctionalState NewState);
+void USART_HalfDuplexCmd(USART_TypeDef* USARTx, FunctionalState NewState);
+void USART_OverSampling8Cmd(USART_TypeDef* USARTx, FunctionalState NewState);
+void USART_OneBitMethodCmd(USART_TypeDef* USARTx, FunctionalState NewState);
+void USART_IrDAConfig(USART_TypeDef* USARTx, uint16_t USART_IrDAMode);
+void USART_IrDACmd(USART_TypeDef* USARTx, FunctionalState NewState);
+```
+
+```c
+/* 标志位相关的 */
+FlagStatus USART_GetFlagStatus(USART_TypeDef* USARTx, uint16_t USART_FLAG);
+void USART_ClearFlag(USART_TypeDef* USARTx, uint16_t USART_FLAG);
+ITStatus USART_GetITStatus(USART_TypeDef* USARTx, uint16_t USART_IT);
+void USART_ClearITPendingBit(USART_TypeDef* USARTx, uint16_t USART_IT);
+```
+
+
+
+## 串口使用
+
+### 发送
+
+```c
+void Serial_Init(void)
+{
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
+	
+	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+    // 
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA,&GPIO_InitStructure);
+	
+	USART_InitTypeDef USART_InitStructure;
+	USART_InitStructure.USART_BaudRate = 9600;
+	USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+	USART_InitStructure.USART_Mode = USART_Mode_Tx;
+	USART_InitStructure.USART_Parity = USART_Parity_No;
+	USART_InitStructure.USART_StopBits = USART_StopBits_1;
+	USART_InitStructure.USART_WordLength = USART_WordLength_8b;
+	USART_Init(USART1,&USART_InitStructure);
+	USART_Cmd(USART1, ENABLE);
+}
+/* 发送 */
+void Serial_SendByte(uint16_t Byte)
+{
+	USART_SendData(USART1, Byte);
+	while(USART_GetFlagStatus(USART1,USART_FLAG_TXE)==RESET);
+    // 标志位会自动被清0，不需要手动清0
+}
+```
+
+函数封装：
+
+```c
+#include "stdio.h"
+#include "stdarg.h"
+
+/* 发送数组 */
+void Serial_SendArray(uint8_t* Array, uint16_t Length)
+{
+	uint16_t i;
+	for(i = 0; i < Length; i++) {
+	
+		Serial_SendByte(Array[i]);
+	
+	}
+}
+/* 发送字符串 */
+void Serial_SendString(char* String)
+{
+	uint16_t i;
+	for(i = 0; String[i] != '\0'; i++) {
+	
+		Serial_SendByte(String[i]);
+	
+	}
+}
+/* 发送字符形式的数字 */
+uint32_t Serial_Pow(uint32_t X, uint8_t Y){
+	uint32_t Result = 1;
+	while(Y--)	
+		Result *= X;
+	return Result;
+}
+void Serial_SendNumber(uint32_t Number, uint8_t Length)
+{
+	uint16_t i;
+	for(i = 0; i < Length; i++) {
+	
+		Serial_SendByte(Number / Serial_Pow(10,Length - i - 1)%10+'0');
+	
+	}
+}
+/* 移植printf，先在设置里选上 "Use MicroLIB"  然后引入<stdio.h>  重写fputc()
+	然后就可以使用printf将数据输出到串口了
+*/
+int fputc(int ch, FILE* f){
+	
+	Serial_SendByte(ch);
+	return ch;
+}
+/* 对sprintf()进行封装 需要引入#include "stdarg.h"*/
+void Serial_Printf(char* format, ...)
+{
+	char String[100];
+	va_list arg;
+	va_start(arg,format);
+	vsprintf(String,format,arg);
+	va_end(arg);
+	Serial_SendString(String);
+}
+```
+
+```c
+/** main.c **/
+int main(void){
+	OLED_Init();
+	Serial_Init();
+	Serial_SendByte(0x41);             // 发送原函数
+	uint8_t arr[6]={0x42,0x43,0x44,0x45};
+	Serial_SendArray(arr,4);
+	Serial_SendString("\r\nNum1=");
+	Serial_SendNumber(1999,4);
+	printf("\r\nNum2=%d",666);         // printf
+	
+	char String[100];
+	sprintf(String,"\r\nNum3=%d",666); // sprintf
+	Serial_SendString(String);
+	Serial_Printf("\r\n");
+	Serial_Printf("你好世界",999);      // Serial_Printf
+	Serial_Printf("Num=%d\r\n",999);
+	while(1){}
+}
+```
+
+### 接收
+
+```c
+void Serial_Init(void)
+{
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
+	
+	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+    // RX复用GPIOA的10口
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA,&GPIO_InitStructure);
+	
+	USART_InitTypeDef USART_InitStructure;
+	USART_InitStructure.USART_BaudRate = 9600;
+	USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+    // USART_Mode_Tx | USART_Mode_Rx表示接收和发送都开启
+	USART_InitStructure.USART_Mode = USART_Mode_Rx; 
+	USART_InitStructure.USART_Parity = USART_Parity_No;
+	USART_InitStructure.USART_StopBits = USART_StopBits_1;
+	USART_InitStructure.USART_WordLength = USART_WordLength_8b;
+	USART_Init(USART1,&USART_InitStructure);
+	USART_Cmd(USART1, ENABLE);
+}
+```
+
+```c
+uint8_t RX_data;
+int main(void){
+    OLED_Init();
+    Serial_Init();
+    while(1)
+    {
+        if(USART_GetFlagStatus(USART1,USART_FLAG_RXNE)==SET)
+        {
+            // 读取操作会自动将标志位清0
+            RX_data = USART_ReceiveData(USART1);
+            OLED_ShowHexNum(1,1,RX_data,2);
+        }
+    }
+}
+```
+
+使用中断接收：
+
+```c
+void Serial_Init(void)
+{
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
+	
+	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+    // RX复用GPIOA的10口
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA,&GPIO_InitStructure);
+	
+	USART_InitTypeDef USART_InitStructure;
+	USART_InitStructure.USART_BaudRate = 9600;
+	USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+    // USART_Mode_Tx | USART_Mode_Rx表示接收和发送都开启
+	USART_InitStructure.USART_Mode = USART_Mode_Rx; 
+	USART_InitStructure.USART_Parity = USART_Parity_No;
+	USART_InitStructure.USART_StopBits = USART_StopBits_1;
+	USART_InitStructure.USART_WordLength = USART_WordLength_8b;
+	USART_Init(USART1,&USART_InitStructure);
+    // 中断开启部分
+    USART_ITConfig(USART1,USART_IT_RXNE,ENABLE);
+	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
+	NVIC_InitTypeDef NVIC_InitStructure;
+	NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+	NVIC_Init(&NVIC_InitStructure);
+    
+	USART_Cmd(USART1, ENABLE);
+}
+```
+
+```c
+/* 中断处理函数及功能封装 */
+uint8_t Serial_Data; 
+uint8_t Serial_Flag;  // 自定义标志位
+uint8_t Serial_GetFlag(void)   // 获取自定义标志位后将自定义标志位清0
+{
+	if(Serial_Flag == 1) {
+		Serial_Flag = 0;
+		return 1;
+	}
+	return 0;
+}
+uint8_t Serial_GetData(void) // 获取数据
+{
+	return Serial_Data;
+}
+void USART1_IRQHandler(void)  // 中断处理函数
+{
+	if(USART_GetFlagStatus(USART1,USART_FLAG_RXNE)==SET)
+		{
+			Serial_Data = USART_ReceiveData(USART1);
+			Serial_Flag = 1;
+			USART_ClearITPendingBit(USART1,USART_IT_RXNE);
+		}
+}
+```
+
+```c
+uint8_t RX_data;
+
+int main(void){
+	OLED_Init();
+	Serial_Init();
+	
+	while(1)
+	{
+		if(Serial_GetFlag())
+		{
+			RX_data = Serial_GetData();
+			OLED_ShowHexNum(1,1,RX_data,2);
+		}
+	}
+}
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+## 补充
+
 ### 数据模式：
+
+HEX模式，以原始数据显示——收到什么数据就把什么数据显示出来。
 
 ![](img/16.USART数据模式.png)
 
@@ -2169,42 +2497,6 @@ USART （Universal Synchronous/Asynchronous Receiver/Transmitter）——   通�
 ![](img/16.USART-文本数据包.png)
 
 ![](img/16.USART-文本数据包接收.png)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
