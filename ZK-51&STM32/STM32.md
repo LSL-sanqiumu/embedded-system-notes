@@ -1347,7 +1347,7 @@ STM32  ADC的外围电路 —— 触发转换部分框图：（触发转换）
 
 ![](img/13.ADC通道.png)
 
-ADC转换模式：
+**ADC转换模式：**
 
 1. 单次转换，非扫描模式：只对一个通道进行转换，转换结束后置标志位，如果再想转换需要再次触发。
 2. 连续转换，非扫描模式：只对一个通道进行转换，转换结束后置标志位，转发一次转换后会持续转换下去，不需要再次触发。
@@ -1355,7 +1355,7 @@ ADC转换模式：
 4. 连续转换，扫描模式：不需要再次触发，第一次触发后后续会不断地进行转换。
 5. 间断模式：扫描时每隔几个通道转换就暂停一次，需要再次触发才继续。
 
-ADC触发控制：（触发源的选择）
+**ADC触发控制：**（触发源的选择）
 
 ![](img/13.ADC触发控制.png)
 
@@ -1369,6 +1369,18 @@ ADC 校准：
 - 建议在每次上电后执行一次校准。
 - 启动校准前， ADC必须处于关电状态超过至少两个ADC时钟周期。
 
+## ADC转换模式图解
+
+![](img/13.ADC模式1.png)
+
+![](img/13.ADC模式2.png)
+
+![](img/13.ADC模式3.png)
+
+![](img/13.ADC模式4.png)
+
+
+
 ## ADC的使用
 
 1. 第一步：开启ADC和GPIO的时钟，设置ADC的分频器。
@@ -1376,6 +1388,7 @@ ADC 校准：
 3. 第三步：配置多路开关，将GPIO口接入到规则组通道列表里。
 4. 第四步：配置ADC转换器。
 5. 第五步：开启ADC。
+6. 第六步：ADC自校准。
 
 ```c
 void AD_Init(void)
@@ -1514,7 +1527,324 @@ void ADC_ClearITPendingBit(ADC_TypeDef* ADCx, uint16_t ADC_IT);
 
 # DMA
 
+DMA（Direct Memory Access）—— 直接存储器存取（直接存储器访问）：
 
+- DMA可以提供外设和存储器或者存储器和存储器之间的高速数据传输，无须CPU干预，节省了CPU的资源。
+- 12个独立可配置的通道： DMA1（7个通道）， DMA2（5个通道）。
+- 每个通道都支持软件触发和特定的硬件触发（外设到存储器的数据转运一般用硬件触发）。
+- **STM32F103C8T6 DMA资源：DMA1（7个通道）。**
+- 可以直接访问STM32内部的存储器，包括运行内存SRAM、程序存储器Flash、寄存器等。
+
+STM32中的存储器：
+
+![](img/14.stm32寄存器.png)
+
+1、ROM：只读存储器，是非易失性、掉电不丢失的存储器。
+
+2、RAM：随机存储器，是易失性、掉电丢失的存储器。
+
+3、程序存储器Flash：主闪存，运行程序一般从主闪存开始运行，除了存储编译后的代码还存储常量。
+
+4、寄存器：特殊的存储器，CPU可以对寄存器进行读写；寄存器的每一位都连着一根导线，这些导线可以用于控制外设电路的状态。（寄存器，连接软件和硬件的桥梁，软件读写寄存器就相当于控制硬件的执行）
+
+## DMA结构
+
+![](img/14.DMA结构框图.png)
+
+1、总线矩阵：为了更高效有条理地访问存储器。
+
+2、主动单元（总线矩阵左端的）：DCode（专门访问Flash）、系统总线、DMA，拥有存储器的访问权。
+
+3、被动单元（总线矩阵右端的）：它们的存储器只能被左边的主动单元所读取。
+
+4、仲裁器：各DMA对应的DMA总线只有一条，因此所有通道都只能分时复用一条DMA总线，如果产生冲突就会有由仲裁器根据通道优先级来决定谁先谁后。总线矩阵也有仲裁器，如果DMA和CPU都要访问同一目标，那么DMA会先暂停CPU的访问，不过总线仲裁器仍然会保证CPU会得到一半的总线保证CPU的正常工作。
+
+4、AHB从设备：DMA自身的寄存器，DMA作为外设也配有相应的配置寄存器；这些DMA的寄存器连接到了AHB总线上，可以被CPU通过AHB总线配置。
+
+5、DMA请求（触发）：DMA的硬件触发源（比如ADC转换完成、窗口接收数据等）。 
+
+6、总线或CPU直接访问Flash，只读不可写。
+
+
+
+## DMA基本结构
+
+![](img/14.DMA基本结构.png)
+
+ 1、外设寄存器站点、存储器站点（Flash、SRAM）。（STM32手册里的存储器，一般特指Flash和SRAM，不包含外设寄存器；而外设寄存器一般叫外设）
+
+2、外设、存储器的起始地址：决定数据从哪来到哪去（从哪读数据，数据写到哪）。
+
+3、数据宽度：指定一次转运按多大的数据宽度来进行（可选字节(byte)、半字(halfword)、字(word)）。
+
+4、地址是否自增：指定的一次运行完成后，下一次转运是否要将地址移到下一个位置去。
+
+5、传输计数器：需要转运计次，是一个自减计数器，减到0后，自增的地址会恢复到最开始的地址，以便下一轮转运。
+
+6、自动重装器：传输计数器减到0后是否要将其恢复到最初的值，用于控制单次运输、循环运输。
+
+7、M2M（memory to memory）：选择触发模式。
+
+8、软件触发：不能和循环运输模式同时使用，一般适用于存储器到存储器的转运。
+
+9、硬件触发：与外设有关的转运，这些转运需要一定的时机，比如ADC转换完成、串口收到数据、定时时间到等。
+
+10、开关控制：DMA外设的开启（使能），转运开启条件——硬件触发有触发源、传输计数器计数大于0；当传输计数器等于0且没有自动重装时，无论是否触发DMA都不会再进行转运，此时就需要关闭DMA外设，再为传输计算机写大于0的数，再开启DMA，才会再次转运。（规定：写传输计数器时，必须先关闭DMA，再进行）
+
+DMA请求映射：
+
+![](img/14.DMA请求映射.png)
+
+转运数据宽度不一致时：（目标的数据宽度比源端的数据宽度大，那就在目标数据前面多出来的空位补0；目标的数据宽度比源端的数据宽度小，那就会把多出来的高位舍弃掉）
+
+![](img/14.DMA数据宽度.png)
+
+## DMA转运例子
+
+使用DMA的步骤：
+
+1. 第一步：通过RCC开启DMA的时钟。
+2. 第二步：调用DMA_Init()初始化。
+3. 第三步：DMA_Cmd()开关控制。
+4. 如果是硬件触发，需要在对应的外设调用一下XXX_DMACmd()开启触发信号的输出。
+
+### 例一
+
+例子1：将SRAM的数组DataA，转运到另一个数组DataB中。
+
+![](img/14.DMAex1.png)
+
+1. 外设地址：给DataA的首地址；存储器地址：给DataB的首地址。
+2. 数据宽度：uint8_t的宽度。
+3. 地址是否自增：需要自增。
+4. 转运方向：外设站点转运到存储器站点。（DataB转到DataA，那就是存储器站点转运到外设站点）
+5. 传输计数器：7。
+6. 自动重装器：不需要重装。
+7. 触发选择：软件触发，因为是存储器到存储器的转运。
+8. 开启DMA，数据开始转运。（转运是复制转运，DataA的数据不会丢失）
+
+测试变量、常量存储区域：（变量、常量的地址由编译器决定，外设寄存器地址是确定的）
+
+```c
+uint8_t sram = 0xaa;
+const uint8_t flash = 0xbb;  // 常量
+int main(void){
+	OLED_Init();
+	OLED_ShowHexNum(1,1,(uint32_t)&sram,8);  // 得到2000开头的，说明在SRAM区
+	OLED_ShowHexNum(2,1,(uint32_t)&flash,8); // 得到0800开头的，说明在Flash区
+	while(1){}
+}
+```
+
+寄存器地址：（通过结构体访问寄存器地址）
+
+```c
+// ADC1的DR寄存器的地址
+// ADC1是结构体指针，指向ADC1外设的起始地址，访问结构体成员相当于加了一个地址偏移量
+OLED_ShowHexNum(4,1,(uint32_t)&ADC1->DR,8);     // 400124C
+OLED_ShowHexNum(4,1,(uint32_t)&(ADC1->DR),8);   // 400124C
+OLED_ShowHexNum(4,1,(uint32_t)&((*ADC1).DR),8); // 400124C
+```
+
+**例子1实现：**初始化MDA，把Data_A数据转运到Data_B
+
+```c
+/* 初始化后就会立刻进行转运，且只转运一次 */
+void MyDMA_Init(uint32_t AddrA,uint32_t AddrB,uint16_t Size) 
+{
+	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1,ENABLE);
+	DMA_InitTypeDef DMA_InitTypeStructure;
+	// 起始地址、宽度、是否地址自增
+	DMA_InitTypeStructure.DMA_PeripheralBaseAddr = AddrA;
+	DMA_InitTypeStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
+	DMA_InitTypeStructure.DMA_PeripheralInc = DMA_PeripheralInc_Enable;
+	// memory 存储
+	DMA_InitTypeStructure.DMA_MemoryBaseAddr = AddrB;
+	DMA_InitTypeStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
+	DMA_InitTypeStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
+	// 转运方向
+	DMA_InitTypeStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
+	// 缓存区大小，传输计数器
+	DMA_InitTypeStructure.DMA_BufferSize = Size;
+	// 是否使用重装计数器
+	DMA_InitTypeStructure.DMA_Mode = DMA_Mode_Normal;
+	// 硬件触发函数软件触发，存储器到存储器就是软件触发
+	DMA_InitTypeStructure.DMA_M2M = DMA_M2M_Enable;
+	// 优先级
+	DMA_InitTypeStructure.DMA_Priority = DMA_Priority_Medium;
+	DMA_Init(DMA1_Channel1,&DMA_InitTypeStructure);
+	
+	DMA_Cmd(DMA1_Channel1,ENABLE);
+}
+```
+
+```c
+/* main.c */
+uint8_t Data_A[] = {0x01,0x02,0x03,0x04};
+uint8_t Data_B[] = {0,0,0,0};
+int main(void){
+	OLED_Init();
+	OLED_ShowHexNum(1,1,Data_A[0],2);
+	OLED_ShowHexNum(1,4,Data_A[1],2);
+	OLED_ShowHexNum(1,7,Data_A[2],2);
+	OLED_ShowHexNum(1,10,Data_A[3],2);
+	OLED_ShowHexNum(2,1,Data_B[0],2);
+	OLED_ShowHexNum(2,4,Data_B[1],2);
+	OLED_ShowHexNum(2,7,Data_B[2],2);
+	OLED_ShowHexNum(2,10,Data_B[3],2);
+	
+    MyDMA_Init((uint32_3)Data_A,(uint32_t)Data_B,4); 
+
+	OLED_ShowHexNum(3,1,Data_A[0],2);
+	OLED_ShowHexNum(3,4,Data_A[1],2);
+	OLED_ShowHexNum(3,7,Data_A[2],2);
+	OLED_ShowHexNum(3,10,Data_A[3],2);
+	OLED_ShowHexNum(4,1,Data_B[0],2);
+	OLED_ShowHexNum(4,4,Data_B[1],2);
+	OLED_ShowHexNum(4,7,Data_B[2],2);
+	OLED_ShowHexNum(4,10,Data_B[3],2);
+	
+	while(1){}
+}
+
+```
+
+如果自己设定开始转运的时机：
+
+```c
+#include "stm32f10x.h"                  // Device header
+
+uint16_t MyDMA_Size;
+
+void MyDMA_Init(uint32_t AddrA,uint32_t AddrB,uint16_t Size) 
+{
+	MyDMA_Size = Size;
+	
+	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1,ENABLE);
+	DMA_InitTypeDef DMA_InitTypeStructure;
+	// 起始地址、宽度、是否地址自增
+	DMA_InitTypeStructure.DMA_PeripheralBaseAddr = AddrA;
+	DMA_InitTypeStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
+	DMA_InitTypeStructure.DMA_PeripheralInc = DMA_PeripheralInc_Enable;
+	// memory 存储
+	DMA_InitTypeStructure.DMA_MemoryBaseAddr = AddrB;
+	DMA_InitTypeStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
+	DMA_InitTypeStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
+	// 转运方向
+	DMA_InitTypeStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
+	// 缓存区大小，传输计数器
+	DMA_InitTypeStructure.DMA_BufferSize = Size;
+	// 是否使用重装计数器
+	DMA_InitTypeStructure.DMA_Mode = DMA_Mode_Normal;
+	// 硬件触发函数软件触发，存储器到存储器就是软件触发
+	DMA_InitTypeStructure.DMA_M2M = DMA_M2M_Enable;
+	// 优先级
+	DMA_InitTypeStructure.DMA_Priority = DMA_Priority_Medium;
+	DMA_Init(DMA1_Channel1,&DMA_InitTypeStructure);
+	
+	// DMA_Cmd(DMA1_Channel1,ENABLE); // 初始化后立刻进行转运
+	DMA_Cmd(DMA1_Channel1,DISABLE); // 初始化后不立刻转运
+}
+
+void MyDMA_Transfer(void)
+{
+	DMA_Cmd(DMA1_Channel1,DISABLE);
+	DMA_SetCurrDataCounter(DMA1_Channel1,MyDMA_Size);
+	DMA_Cmd(DMA1_Channel1,ENABLE);
+	// 等待转运完成
+	while(DMA_GetFlagStatus(DMA1_FLAG_TC1) == RESET);
+	// 清除标志位
+	DMA_ClearFlag(DMA1_FLAG_TC1);
+}
+```
+
+```c
+/* main.c */
+uint8_t Data_A[] = {0x01,0x02,0x03,0x04};
+uint8_t Data_B[] = {0,0,0,0};
+	
+int main(void){
+	MyDMA_Init((uint32_t)Data_A,(uint32_t)Data_B,4); 
+	OLED_Init();
+	while(1)
+	{
+		Data_A[0]++;
+		Data_A[1]++; 
+		Data_A[2]++; 
+		Data_A[3]++; 
+		OLED_ShowString(1,1,"DataA");
+		OLED_ShowString(3,1,"DataB");
+		OLED_ShowHexNum(1,8,(uint32_t)Data_A,8);
+		OLED_ShowHexNum(3,8,(uint32_t)Data_B,8);
+		
+		OLED_ShowHexNum(2,1,Data_A[0],2);
+		OLED_ShowHexNum(2,4,Data_A[1],2);
+		OLED_ShowHexNum(2,7,Data_A[2],2);
+		OLED_ShowHexNum(2,10,Data_A[3],2);
+		OLED_ShowHexNum(4,1,Data_B[0],2);
+		OLED_ShowHexNum(4,4,Data_B[1],2);
+		OLED_ShowHexNum(4,7,Data_B[2],2);
+		OLED_ShowHexNum(4,10,Data_B[3],2);
+		
+		Delay_ms(1000);
+		MyDMA_Transfer();
+		
+		OLED_ShowHexNum(2,1,Data_A[0],2);
+		OLED_ShowHexNum(2,4,Data_A[1],2);
+		OLED_ShowHexNum(2,7,Data_A[2],2);
+		OLED_ShowHexNum(2,10,Data_A[3],2);
+		OLED_ShowHexNum(4,1,Data_B[0],2);
+		OLED_ShowHexNum(4,4,Data_B[1],2);
+		OLED_ShowHexNum(4,7,Data_B[2],2);
+		OLED_ShowHexNum(4,10,Data_B[3],2);
+		Delay_ms(1000);
+	}
+}
+
+```
+
+
+
+### 例二
+
+例子2：ADC的数据寄存器的数据转运到MDA存储器中。
+
+![](img/14.DMAex2.png)
+
+1. 外设地址：给ADC的数据存储寄存器的地址；存储器地址：在SRAM中定义一个数组，给这个数组的首地址。
+2. 数据宽度：uint16_t的宽度。
+3. 地址是否自增：外设地址不自增，存储器地址需要自增。
+4. 转运方向：外设站点转运到存储器站点。
+5. 传输计数器：7。
+6. 自动重装器：ADC单次扫描，就不需要重装；ADC是连续扫描，可以使用自动重装。
+7. 触发选择：选择ADC的硬件触发。（ADC连续扫描，虽然单通道转换完成后不产生任何标志位和中断，但是它会产生DMA请求去触发DMA转运）
+8. 开启DMA，数据开始转运。（转运是复制转运，DataA的数据不会丢失）
+
+
+
+## 函数原型说明
+
+> stm32f10x_dma.h
+
+```c
+// 初始化
+void DMA_DeInit(DMA_Channel_TypeDef* DMAy_Channelx);
+void DMA_Init(DMA_Channel_TypeDef* DMAy_Channelx, DMA_InitTypeDef* DMA_InitStruct);
+void DMA_StructInit(DMA_InitTypeDef* DMA_InitStruct);
+// 开启DMA
+void DMA_Cmd(DMA_Channel_TypeDef* DMAy_Channelx, FunctionalState NewState);
+// DMA中断配置
+void DMA_ITConfig(DMA_Channel_TypeDef* DMAy_Channelx, uint32_t DMA_IT, FunctionalState NewState);
+// 设置DMA的数据计数器
+void DMA_SetCurrDataCounter(DMA_Channel_TypeDef* DMAy_Channelx, uint16_t DataNumber); 
+// 获取传输计数器的值
+uint16_t DMA_GetCurrDataCounter(DMA_Channel_TypeDef* DMAy_Channelx);
+// 获取标志位，前面程序里使用，后面中断里使用
+FlagStatus DMA_GetFlagStatus(uint32_t DMAy_FLAG);
+void DMA_ClearFlag(uint32_t DMAy_FLAG);
+ITStatus DMA_GetITStatus(uint32_t DMAy_IT);
+void DMA_ClearITPendingBit(uint32_t DMAy_IT);
+```
 
 # USART
 
@@ -1634,7 +1964,7 @@ TB6612是一款双路H桥型的直流电机驱动芯片，可以驱动两个直�
 - 输出：1、点亮一个LED；2、LED灯闪烁；3、LED流水灯；4、控制有源蜂鸣器的响应。
 - 输入：1、按钮控制LED亮灭；2、光敏传感器控制蜂鸣器响应。
 
-OLED屏幕。
+结果显示：使用OLED屏幕。
 
 **EXTI外部中断部分：**1、对射式红外传感器计次；2、旋转编码器计次。
 
@@ -1646,9 +1976,13 @@ OLED屏幕。
 
 **TIM输入捕获功能部分：**1、计算频率；2、计算频率和占空比。
 
+**TIM编码器接口部分：**1、编码器测速——直流电机。
+
+**ADC部分：**1、使用单通道转换电位器的模拟量。2、使用单通道模拟多通道转换电位器、温度传感器、光敏传感器、红外传感器的模拟量。
+
+**DMA部分：**1、DMA转换数据；2、使用DMA转换ADC多通道转换后的数据。
 
 
-**TIM编码器接口部分：**
 
 
 
