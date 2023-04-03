@@ -1820,6 +1820,171 @@ int main(void){
 7. 触发选择：选择ADC的硬件触发。（ADC连续扫描，虽然单通道转换完成后不产生任何标志位和中断，但是它会产生DMA请求去触发DMA转运）
 8. 开启DMA，数据开始转运。（转运是复制转运，DataA的数据不会丢失）
 
+ADC单次转换模式，通过DMA转运数据：
+
+```c
+uint16_t ADValue[4];
+void AD_Init(void)
+{
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1,ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA,ENABLE);
+	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1,ENABLE);
+	
+	RCC_ADCCLKConfig(RCC_PCLK2_Div6);
+	
+	
+	GPIO_InitTypeDef GPIO_InitStructure;
+ 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AIN;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_3;
+ 	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	
+	ADC_RegularChannelConfig(ADC1,ADC_Channel_0,1,ADC_SampleTime_55Cycles5);
+	ADC_RegularChannelConfig(ADC1,ADC_Channel_1,2,ADC_SampleTime_55Cycles5);
+	ADC_RegularChannelConfig(ADC1,ADC_Channel_2,3,ADC_SampleTime_55Cycles5);
+	ADC_RegularChannelConfig(ADC1,ADC_Channel_3,4,ADC_SampleTime_55Cycles5);
+	
+	ADC_InitTypeDef ADC_InitStructure;
+	ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
+	ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None;
+	ADC_InitStructure.ADC_Mode = ADC_Mode_Independent;
+	// 连续转换模式
+	ADC_InitStructure.ADC_ContinuousConvMode = DISABLE;
+	ADC_InitStructure.ADC_NbrOfChannel = 4;
+	ADC_InitStructure.ADC_ScanConvMode = ENABLE;
+	ADC_Init(ADC1,&ADC_InitStructure);
+	/* DMA配置 start */
+	DMA_InitTypeDef DMA_InitTypeStructure;
+	// 起始地址、宽度、是否地址自增
+	DMA_InitTypeStructure.DMA_PeripheralBaseAddr = (uint32_t)&ADC1->DR;
+	DMA_InitTypeStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
+	DMA_InitTypeStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
+	// memory 存储
+	DMA_InitTypeStructure.DMA_MemoryBaseAddr = (uint32_t)ADValue;
+	DMA_InitTypeStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
+	DMA_InitTypeStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
+	// 转运方向
+	DMA_InitTypeStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
+	// 缓存区大小，传输计数器
+	DMA_InitTypeStructure.DMA_BufferSize = 4;
+	// 是否使用重装计数器
+	DMA_InitTypeStructure.DMA_Mode = DMA_Mode_Normal;
+	// 硬件触发函数软件触发，存储器到存储器就是软件触发
+	DMA_InitTypeStructure.DMA_M2M = DMA_M2M_Disable;
+	// 优先级
+	DMA_InitTypeStructure.DMA_Priority = DMA_Priority_Medium;
+	DMA_Init(DMA1_Channel1,&DMA_InitTypeStructure);
+	DMA_Cmd(DMA1_Channel1,ENABLE); // 初始化后立刻进行转运
+    /* DMA配置 end */
+    
+	ADC_DMACmd(ADC1,ENABLE);
+	ADC_Cmd(ADC1,ENABLE);
+	// 校准
+	ADC_ResetCalibration(ADC1);
+	while(ADC_GetResetCalibrationStatus(ADC1) == SET);
+	ADC_StartCalibration(ADC1);
+	while(ADC_GetCalibrationStatus(ADC1));
+}
+
+void AD_GetValue(void)
+{
+	DMA_Cmd(DMA1_Channel1,DISABLE);
+	DMA_SetCurrDataCounter(DMA1_Channel1,4);
+	DMA_Cmd(DMA1_Channel1,ENABLE);
+	// 软件触发ADC转换
+	ADC_SoftwareStartConvCmd(ADC1,ENABLE);
+	// 等待转运完成
+	while(DMA_GetFlagStatus(DMA1_FLAG_TC1) == RESET);
+	// 清除标志位
+	DMA_ClearFlag(DMA1_FLAG_TC1);
+}
+```
+
+```c
+/* main.c */
+int main()
+{
+    AD_Init();
+    while(){
+        AD_GetValue();
+    }
+}
+```
+
+
+
+ADC连续转换模式，通过DMA 循环转运数据：
+
+```c
+uint16_t ADValue[4];
+void AD_Init(void)
+{
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1,ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA,ENABLE);
+	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1,ENABLE);
+	
+	RCC_ADCCLKConfig(RCC_PCLK2_Div6);
+	
+	
+	GPIO_InitTypeDef GPIO_InitStructure;
+ 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AIN;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_3;
+ 	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	
+	ADC_RegularChannelConfig(ADC1,ADC_Channel_0,1,ADC_SampleTime_55Cycles5);
+	ADC_RegularChannelConfig(ADC1,ADC_Channel_1,2,ADC_SampleTime_55Cycles5);
+	ADC_RegularChannelConfig(ADC1,ADC_Channel_2,3,ADC_SampleTime_55Cycles5);
+	ADC_RegularChannelConfig(ADC1,ADC_Channel_3,4,ADC_SampleTime_55Cycles5);
+	
+	ADC_InitTypeDef ADC_InitStructure;
+	ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
+	ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None;
+	ADC_InitStructure.ADC_Mode = ADC_Mode_Independent;
+	// 连续转换模式
+	ADC_InitStructure.ADC_ContinuousConvMode = ENABLE;
+	ADC_InitStructure.ADC_NbrOfChannel = 4;
+	ADC_InitStructure.ADC_ScanConvMode = ENABLE;
+	ADC_Init(ADC1,&ADC_InitStructure);
+	
+	DMA_InitTypeDef DMA_InitTypeStructure;
+	// 起始地址、宽度、是否地址自增
+	DMA_InitTypeStructure.DMA_PeripheralBaseAddr = (uint32_t)&ADC1->DR;
+	DMA_InitTypeStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
+	DMA_InitTypeStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
+	// memory 存储
+	DMA_InitTypeStructure.DMA_MemoryBaseAddr = (uint32_t)ADValue;
+	DMA_InitTypeStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
+	DMA_InitTypeStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
+	// 转运方向
+	DMA_InitTypeStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
+	// 缓存区大小，传输计数器
+	DMA_InitTypeStructure.DMA_BufferSize = 4;
+	// 是否使用重装计数器
+	DMA_InitTypeStructure.DMA_Mode = DMA_Mode_Circular;
+	// 硬件触发函数软件触发，存储器到存储器就是软件触发
+	DMA_InitTypeStructure.DMA_M2M = DMA_M2M_Disable;
+	// 优先级
+	DMA_InitTypeStructure.DMA_Priority = DMA_Priority_Medium;
+	DMA_Init(DMA1_Channel1,&DMA_InitTypeStructure);
+	DMA_Cmd(DMA1_Channel1,ENABLE); // 初始化后立刻进行转运
+	ADC_DMACmd(ADC1,ENABLE);
+	ADC_Cmd(ADC1,ENABLE);
+	
+	// 校准
+	ADC_ResetCalibration(ADC1);
+	while(ADC_GetResetCalibrationStatus(ADC1) == SET);
+	ADC_StartCalibration(ADC1);
+	while(ADC_GetCalibrationStatus(ADC1));
+	
+	ADC_SoftwareStartConvCmd(ADC1,ENABLE);
+}
+```
+
+
+
+
+
 
 
 ## 函数原型说明
@@ -1846,7 +2011,200 @@ ITStatus DMA_GetITStatus(uint32_t DMAy_IT);
 void DMA_ClearITPendingBit(uint32_t DMAy_IT);
 ```
 
+# 通信接口
+
+## 概述
+
+通信的目的：将一个设备的数据传送到另一个设备，扩展硬件系统。
+
+通信协议：制定通信的规则，通信双方按照协议规则进行数据收发。
+
+![](img/15.通信.png)
+
+USART （Universal Synchronous/Asynchronous Receiver/Transmitter）——   通用同步异步收发传输器。
+
+TX（Transmit  Exchange）—— 数据发送脚。
+
+RX（Receive Exchange）—— 数据接收脚。
+
+SCL（Serial Clock）——  时钟。
+
+SDA（Serial  Data）—— 数据。
+
+SCLK（Serial Clock）——  时钟。
+
+MOSI（Master Output Slave Input） —— 主机输出数据脚。
+
+MISO（Master Input Slave Output） —— 主机输入数据脚。
+
+CS（Chip Select）—— 片选， 用于指定通信的对象。
+
+CAN通信，两个差分数据脚，用两个引脚表示一个差分数据。
+
+DP（Data Positive ）、DM（Data Minus），也是差分数据脚。
+
+双工：
+
+1. 全双工：通信双方能够同时进行双向通信。（一般全双工的通信都有两根通信线，一根发送一根接收，发送和接收互不影响）
+2. 半双工：允许二台设备之间的双向数据传输，但不能同时进行。
+3. 单工：指数据传输只支持数据在一个方向上传输。
+
+同步和异步时钟：
+
+1. 
+
+## 串口协议
+
+串口通信：
+
+- 串口是一种应用十分广泛的通讯接口，串口成本低、容易使用、通信线路简单，可实现两个设备的互相通信。
+- 单片机的串口可以使单片机与单片机、单片机与电脑、单片机与各式各样的模块互相通信，极大地扩展了单片机的应用范围，增强了单片机系统的硬件实力。
+
+硬件电路：
+
+- 简单双向串口通信有两根通信线（发送端TX和接收端RX）。
+- TX与RX要交叉连接。
+- 当只需单向的数据传输时，可以只接一根通信线。
+- 当电平标准不一致时，需要加电平转换芯片。
+
+![](img/16.串口电路.png)
+
+**串口常用电平标准**——电平标准是数据1和数据0的表达方式，是传输线缆中人为规定的电压与数据的对应关系，串口常用的电平标准有如下三种：
+
+- TTL电平：+3.3V或+5V表示1，0V表示0。（单片机最常见的；TTL（transistor transistor logic）即晶体管-晶体管逻辑电平）
+- RS232电平：-3~-15V表示1，+3~+15V表示0。
+- RS485电平：两线压差+2~+6V表示1，-2~-6V表示0（差分信号）。
+
+**硬件电路协议规定：**一个设备使用TX发送高低电平，另一个设备使用RX接收高低电平，在线路中使用TTL电平。
+
+**串口参数及时序：**如何使用1和0来组成想要发送的一个字节数据？
+
+- 波特率：串口通信的速率。（单位时间内传输符号的个数（ 传符号率 ）即波特率，是码元传输速率单位，它说明单位时间传输了多少个码元）；（波特率，每秒传输的比特个数，bit/s，bps；二进制调制的情况下，一个码元就是1bit，此时波特率对于比特率）
+- 起始位：标志一个数据帧的开始，固定为低电平。
+- 数据位：数据帧的有效载荷，1为高电平，0为低电平，低位先行。
+- 校验位：用于数据验证，根据数据位计算得来。（无校验、奇校验、偶校验）
+- 停止位：用于数据帧间隔，固定为高电平。
+
+协议规定串口发送的一个字节的格式如下：（串口中每一个数据都装在一个数据帧里）
+
+![](img/16.数据帧.png)
+
+说明：空闲为高电平，也就是没有数据传输时引脚必须置高电平作为空闲状态，需要发送时必须先发送一个起始位且起始位必须是低电平，来打破空闲状态的高电平，产生一个下降沿，这个下降沿用于告诉接收设备，这一帧的数据要开始发送了。停止位固定为1，把引脚恢复成高电平，方便下一次的下降沿。
+
+示例——发送一个数据0F，低位先行：（1111先发送，0000后发送，低位 → 高位 依次发送）
+
+![](img/16.发送.png)
+
+关于奇偶校验：
+
+- 奇校验：原始码流+校验位，总共有奇数个1。
+- 偶校验：原始码流+校验位，总共有偶数个1。
+- 使用奇校验，数据发送时会通过校验位补0或1来使整个码流中的1是奇数，当接收后发现有效位+校验位的1不是奇数时认为传输出错；使用偶校验也同理，当接收后发现有效位+校验位的1不是偶数时认为出错。（其它更好的校验，CRC校验等）
+
+串口时序：（STM32中根据字节顺序翻转高低电平由外设USART自动完成）
+
+![](img/16.串口时序.png)
+
+串口主要就是通过收发这些时序来进行通信的。
+
 # USART
+
+UART（Universal Asynchronous Receiver/Transmitter ）—— 异步收发器
+
+USART （Universal Synchronous/Asynchronous Receiver/Transmitter）——   通用同步/异步收发器。（同步模式只支持时钟输出不支持时钟输入，这更多是为了兼容别的协议或者特殊用途而设计的，不支持两个USART之间进行同步通信，因此主要还是学习异步通信）
+
+- USART是STM32内部集成的硬件外设，**可根据数据寄存器的一个字节数据自动生成数据帧时序**，从TX引脚发送出去，也可自动接收RX引脚的数据帧时序，拼接为一个字节数据，存放在数据寄存器里。
+- 自带波特率发生器，最高达4.5Mbits/s。（配置波特率）
+- **可配置数据位长度（8/9）、停止位长度（0.5/1/1.5/2）。**
+- 可选校验位（无校验/奇校验/偶校验）。
+- 支持同步模式、硬件流控制、DMA、智能卡、IrDA、LIN。
+- STM32F103C8T6 USART资源： USART1（APB2总线的设备）、 USART2（APB1）、 USART3（APB1）。
+
+## USART框图
+
+![](img/16.USART框图.png)
+
+
+
+
+
+## USART基本结构
+
+![](img/16.USART基本结构.png)
+
+## USART细节
+
+### 数据帧：
+
+![](img/16.USART数据帧2.png)
+
+![](img/16.USART数据帧.png)
+
+### 起始位检测：
+
+![](img/16.USART起始位检测.png)
+
+### 数据采样：
+
+![](img/16.USART数据采样.png)
+
+### 波特率发生器：
+
+![](img/16.USART波特率发生器.png)
+
+
+
+### 数据模式：
+
+![](img/16.USART数据模式.png)
+
+### HEX：
+
+![](img/16.USART-HEX数据包.png)
+
+![](img/16.USART-HEX数据包接收.png)
+
+### 文本：
+
+![](img/16.USART-文本数据包.png)
+
+![](img/16.USART-文本数据包接收.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1857,6 +2215,24 @@ void DMA_ClearITPendingBit(uint32_t DMAy_IT);
 
 
 # SPI
+
+
+
+
+
+# CAN
+
+
+
+
+
+
+
+# USB
+
+
+
+
 
 
 
