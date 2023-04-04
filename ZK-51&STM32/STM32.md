@@ -2819,7 +2819,7 @@ $I^2C$的电路部分，$I^2C$一主多从的典型电路模型：
 - 设备的SCL和SDA均要配置成开漏输出模式。
 - SCL和SDA各添加一个上拉电阻，阻值一般为4.7KΩ左右。
 
-CPU和被控IC的内部结构如右图，输出采用开漏输出——SCLK输出低电平时下管导通输出低电平，输出高电平时下管断开引脚处于浮空状态，因此只能输出低电平而不能输出高电平；为了避免SCLK输出高电平造成的引脚浮空，通过外接上拉电阻来将引脚电平拉到高电平。（杜绝电源短路，保证电路安全；避免了引脚模式的频繁切换，开漏加弱上拉的模式同时兼具了输入和输出功能——想要输出，就操作引脚高低电平变化；想要输入，就观测引脚高低电平变化。）
+CPU和被控IC的内部结构如右图，输出采用开漏输出——SCLK输出低电平时DATA路下管导通输出低电平，输出高电平时下管断开引脚处于浮空状态，因此只能输出低电平而不能输出高电平；为了避免SCLK输出高电平造成的引脚浮空，通过外接上拉电阻来将引脚电平拉到高电平。（杜绝电源短路，保证电路安全；避免了引脚模式的频繁切换，开漏加弱上拉的模式同时兼具了输入和输出功能——想要输出，就操作引脚高低电平变化；想要输入，就观测引脚高低电平变化。）
 
 开漏模式下，输出高电平相当于断开引脚，所以在输入前直接输出高电平断开引脚，不需要切换成输入模式。（如右边的IC、CPU结构图，如果高电平，那么DATAN1 OUT那就断开了，就会进入了DATA IN，就是输入模式了）
 
@@ -2863,7 +2863,7 @@ CPU和被控IC的内部结构如右图，输出采用开漏输出——SCLK输�
 
 ![](img/17.I2C接收单元.png)
 
-如何理解主机接收前需要释放SDA？所有设备包括主机都始终处于输入模式，当主机需要发送的时候，就可以主动去拉低SDA；而主机在被动接收时就必须先释放SDA，不要动SDA，以免影响到从机发送的数据，因为总线是“线与”的特征，如何一个设备拉低了总线就是低电平，如果主机接收时还拽着SDA不放手，那从机无论发什么数据总线都一直都是低电平。
+如何理解主机接收前需要释放SDA？所有设备包括主机都始终处于输入模式，当主机需要发送的时候，就可以主动去拉低SDA；而主机在被动接收时就必须先释放SDA，不要动SDA，以免影响到从机发送的数据，因为总线是“线与”的特征，任何一个设备拉低了总线就都是低电平，如果主机接收时还拽着SDA不放手，那从机无论发什么数据总线都一直都是低电平。
 
 主机接收字节时：
 
@@ -2933,6 +2933,134 @@ $I^2C$规定的完整数据帧：一个完整的数据帧是起始条件到终�
 
 
 ## $I^2C$软件实现
+
+程序模块：
+
+1. $I^2C$通信层模块：$I^2C$使用的GPIO口的初始化（使用两个IO口充当SDA、SCLK，任何两个IO口都可以）、$I^2C$的六个时序基本模块（起始、终止、发送1字节、接收1字节、发送应答、接收应答）。
+2. MPU6050模块：通过$I^2C$通信层模块实现指定地址读、指定地址写，写寄存器对芯片进行配置、读存储器得到传感器数据。
+3. 主调用模块：初始化，拿数据，显示数据。
+
+### $I^2C$通信层模块
+
+`MyI2C.c`：
+
+```c
+#include "stm32f10x.h"                  // Device header
+#include "Delay.h"
+
+void MyI2C_W_SCL(uint8_t BitValue)
+{
+	GPIO_WriteBit(GPIOB,GPIO_Pin_10,(BitAction)BitValue);
+	Delay_us(10);
+}
+void MyI2C_W_SDA(uint8_t BitValue)
+{
+	GPIO_WriteBit(GPIOB,GPIO_Pin_11,(BitAction)BitValue);
+	Delay_us(10);
+}
+uint8_t MyI2C_R_SDA(void)
+{
+	uint8_t BitValue;
+	BitValue = GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_11);
+	Delay_us(10);
+	return BitValue;
+}
+void MyI2C_Init(void)
+{
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB,ENABLE);
+	
+	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10 | GPIO_Pin_11;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOB,&GPIO_InitStructure);
+	GPIO_SetBits(GPIOB,GPIO_Pin_10 | GPIO_Pin_11);
+}
+/* 起始条件：SDA由高置低，SCL高，待SDA置低完成后SCL也置低 */
+void MyI2C_Start(void)
+{
+	MyI2C_W_SDA(1); // 先SDA，为了兼容起始条件和重复起始条件
+	MyI2C_W_SCL(1);
+	MyI2C_W_SDA(0);
+	MyI2C_W_SCL(0);
+}
+/* 终止条件：SCL置高，SDA在SCL高电平期间由低置高 */
+void MyI2C_Stop(void)
+{
+	MyI2C_W_SDA(0); // 先拉低SDA
+	MyI2C_W_SCL(1);
+	MyI2C_W_SDA(1);
+}
+/* 发送一个字节：高位先行，1时SDA置1,0时SDA置0 */
+void MyI2C_SendByte(uint8_t Byte)
+{
+	uint8_t i;
+	for(i = 0; i < 8; i++)
+	{
+		MyI2C_W_SDA(Byte & (0x80 >> i));  // 起始条件后SCL为低电平，可放数据
+		MyI2C_W_SCL(1); //  SCL高电平，读取
+		MyI2C_W_SCL(0); //  SCL恢复低电平，恢复数据写入
+	}
+}
+/* 接收一个字节： */
+uint8_t MyI2C_ReceiveByte(void)
+{
+	uint8_t Byte = 0x00;
+	uint8_t i;
+	MyI2C_W_SDA(1);        // 释放SDA
+	for(i = 0; i < 8; i++)
+	{
+		MyI2C_W_SCL(1);    // SCL置高，开始读取
+		if(MyI2C_R_SDA() == 1) {Byte |= (0x80>>i);}
+		MyI2C_W_SCL(0);     // 读取结束
+	}
+	return Byte;
+}
+/* 发送一个应答： */
+void MyI2C_SendAck(uint8_t AckBit)
+{
+
+	MyI2C_W_SDA(AckBit);  
+	MyI2C_W_SCL(1); // 读取应答
+	MyI2C_W_SCL(0); // 进入下一个时序单元
+
+}
+/* 接收一个应答： */
+uint8_t MyI2C_ReceiveAck(void)
+{
+	uint8_t AckBit;
+	MyI2C_W_SDA(1);		// 释放SDA
+	MyI2C_W_SCL(1);		// SCL置高，开始读取
+	AckBit = MyI2C_R_SDA(); 
+	MyI2C_W_SCL(0);     // 读取结束，恢复低电平
+	return AckBit;
+}
+```
+
+测试：
+
+```c
+#include "stm32f10x.h"                  // Device header
+#include "Delay.h"
+#include "OLED.h"
+#include "MyI2C.h"
+
+int main(void){
+	OLED_Init();
+	MyI2C_Init();
+	/* 点名时序 */
+	MyI2C_Start();
+	MyI2C_SendByte(0xD0);   // 0xD0，6050的地址，会应答，ACK为0
+	// MyI2C_SendByte(0xA0); // 0xA0，总线上没有挂载这个设备，不会应答，ACK1
+	uint8_t Ack = MyI2C_ReceiveAck();
+	MyI2C_Stop();
+	OLED_ShowString(1,1,"ACK:");
+	OLED_ShowNum(1,5,Ack,3);
+	while(1){}
+}
+```
+
+
 
 
 
