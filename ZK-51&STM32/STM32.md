@@ -3051,7 +3051,7 @@ int main(void){
 	/* 点名时序 */
 	MyI2C_Start();
 	MyI2C_SendByte(0xD0);   // 0xD0，6050的地址，会应答，ACK为0
-	// MyI2C_SendByte(0xA0); // 0xA0，总线上没有挂载这个设备，不会应答，ACK1
+	// MyI2C_SendByte(0xA0); // 0xA0，总线上没有挂载这个设备，不会应答，ACK为1
 	uint8_t Ack = MyI2C_ReceiveAck();
 	MyI2C_Stop();
 	OLED_ShowString(1,1,"ACK:");
@@ -3060,9 +3060,176 @@ int main(void){
 }
 ```
 
+### MPU6050模块
+
+主要读写功能实现：
+
+```c
+#include "stm32f10x.h"                  // Device header
+#include "MyI2C.h"
+#include "MPU6050_Reg.h"
+#define MPU6050_ADDRESS 0xD0
+
+/* 指定地址写一个字节的实现 */
+void MPU6050_WriteReg(uint8_t RegAddress, uint8_t Data)
+{
+	MyI2C_Start();
+	MyI2C_SendByte(MPU6050_ADDRESS); 
+	MyI2C_ReceiveAck();
+	MyI2C_SendByte(RegAddress); // 指定写入寄存器地址
+	MyI2C_ReceiveAck();
+	// 进阶：指定地址写多个字节，可以使用for循环发送多个字节数据
+	MyI2C_SendByte(Data); 
+	MyI2C_ReceiveAck();
+	MyI2C_Stop();
+}
+/* 指定地址读一个字节的实现 */
+uint8_t MPU6050_ReadReg(uint8_t RegAddress)
+{
+	uint8_t Data;
+	MyI2C_Start();
+	MyI2C_SendByte(MPU6050_ADDRESS); 
+	MyI2C_ReceiveAck();
+	MyI2C_SendByte(RegAddress);
+	MyI2C_ReceiveAck();
+	
+	MyI2C_Start();
+	MyI2C_SendByte(MPU6050_ADDRESS | 0x01);  // 最低位决定读写，1-读
+	MyI2C_ReceiveAck();
+	
+	// 如果想指定地址读多个字节，可以使用for循环将这两端包起来重复读取
+	Data = MyI2C_ReceiveByte(); 
+	MyI2C_SendAck(1);
+	MyI2C_Stop();
+	
+	return Data;
+}
+
+void MPU6050_Init(void)
+{
+	MyI2C_Init();
+	// 在电源管理寄存器1写入0x01，解除睡眠模式，选用陀螺仪时钟
+	MPU6050_WriteReg(0x6B,0x01);
+	MPU6050_WriteReg(0x6C,0x00);
+	MPU6050_WriteReg(0x19,0x09);
+	MPU6050_WriteReg(0x1A,0x06);
+	MPU6050_WriteReg(0x1B,0x18);
+	MPU6050_WriteReg(0x1c,0x18);
+	
+}
+```
+
+测试：
+
+```c
+int main(void){
+	
+	OLED_Init();
+	MPU6050_Init();
+	MPU6050_WriteReg(0x19,0xAA); // 往MPU6050的寄存器写入一个数据
+	Mint8_t id = MPU6050_ReadReg(0x75); // 读取0x75寄存器，获取MPU6050型号
+    OLED_ShowString(1,1,"ID:");
+	MLED_ShowHexNum(1,3,id,2);
+	Mint8_t val = MPU6050_ReadReg(0x19); // 读取MPU6050的0x19寄存器的值
+	MLED_ShowHexNum(2,1,val,2);
+	while(1)
+	{}
+}
+```
 
 
 
+利用读写操作读取MPU6050内数据：
+
+```c
+/* 读取MPU6050的数据 */
+void MPU6050_GetData(int16_t* AccX,int16_t* AccY,int16_t* AccZ,int16_t* GyroX,int16_t* GyroY,int16_t* GyroZ)
+{
+	uint16_t DataH,DataL;
+	DataH = MPU6050_ReadReg(MPU6050_ACCEL_XOUT_H);
+	DataL = MPU6050_ReadReg(MPU6050_ACCEL_XOUT_L);
+	*AccX = (DataH << 8) | DataL;
+	
+	DataH = MPU6050_ReadReg(MPU6050_ACCEL_YOUT_H);
+	DataL = MPU6050_ReadReg(MPU6050_ACCEL_YOUT_L);
+	*AccY = (DataH << 8) | DataL;
+	
+	DataH = MPU6050_ReadReg(MPU6050_ACCEL_ZOUT_H);
+	DataL = MPU6050_ReadReg(MPU6050_ACCEL_ZOUT_L);
+	*AccZ = (DataH << 8) | DataL;
+	
+	DataH = MPU6050_ReadReg(MPU6050_GYRO_XOUT_H);
+	DataL = MPU6050_ReadReg(MPU6050_GYRO_XOUT_L);
+	*GyroX = (DataH << 8) | DataL;
+	
+	DataH = MPU6050_ReadReg(MPU6050_GYRO_YOUT_H);
+	DataL = MPU6050_ReadReg(MPU6050_GYRO_YOUT_L);
+	*GyroY = (DataH << 8) | DataL;
+	
+	DataH = MPU6050_ReadReg(MPU6050_GYRO_ZOUT_H);
+	DataL = MPU6050_ReadReg(MPU6050_GYRO_ZOUT_L);
+	*GyroZ = (DataH << 8) | DataL;
+
+}
+```
+
+测试：
+
+```c
+
+int16_t AX,AY,AZ,GX,GY,GZ;
+
+int main(void){
+	OLED_Init();
+	OLED_ShowString(1,1,"ID:");
+	MPU6050_Init();
+	while(1)
+	{
+		OLED_ShowHexNum(1,4,MPU6050_ReadReg(0x75),2);
+		MPU6050_GetData(&AX,&AY,&AZ,&GX,&GY,&GZ);
+		OLED_ShowSignedNum(2,1,AX,5);
+		OLED_ShowSignedNum(3,1,AY,5);
+		OLED_ShowSignedNum(4,1,AZ,5);
+		OLED_ShowSignedNum(2,8,GX,5);
+		OLED_ShowSignedNum(3,8,GX,5);
+		OLED_ShowSignedNum(4,8,GX,5);
+	}
+}
+```
+
+MPU6050的寄存器地址的宏定义：
+
+```c
+#ifndef __MPU6050_REG_H__
+#define __MPU6050_REG_H__
+
+#define	MPU6050_SMPLRT_DIV		0x19
+#define	MPU6050_CONFIG			0x1A
+#define	MPU6050_GYRO_CONFIG		0x1B
+#define	MPU6050_ACCEL_CONFIG	0x1C
+
+#define	MPU6050_ACCEL_XOUT_H	0x3B
+#define	MPU6050_ACCEL_XOUT_L	0x3C
+#define	MPU6050_ACCEL_YOUT_H	0x3D
+#define	MPU6050_ACCEL_YOUT_L	0x3E
+#define	MPU6050_ACCEL_ZOUT_H	0x3F
+#define	MPU6050_ACCEL_ZOUT_L	0x40
+#define	MPU6050_TEMP_OUT_H		0x41
+#define	MPU6050_TEMP_OUT_L		0x42
+#define	MPU6050_GYRO_XOUT_H		0x43
+#define	MPU6050_GYRO_XOUT_L		0x44
+#define	MPU6050_GYRO_YOUT_H		0x45
+#define	MPU6050_GYRO_YOUT_L		0x46
+#define	MPU6050_GYRO_ZOUT_H		0x47
+#define	MPU6050_GYRO_ZOUT_L		0x48
+
+#define	MPU6050_PWR_MGMT_1		0x6B
+#define	MPU6050_PWR_MGMT_2		0x6C
+#define	MPU6050_WHO_AM_I		0x75
+
+#endif
+
+```
 
 
 
