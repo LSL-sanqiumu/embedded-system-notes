@@ -2809,7 +2809,7 @@ $I^2C$通信：1、协议规则，通过软件模拟的形式实现协议来学�
 
 ## $I^2C$硬件规定
 
-$I^2C$的电路部分，$I^2C$一主多从的典型电路模型：
+$I^2C$的电路部分，$I^2C$一主多从的典型电路模型：（主机有总线控制权，从机在主机允许后才有控制权）
 
 ![](img/17.I2C硬件电路.png)
 
@@ -2991,13 +2991,13 @@ void MyI2C_Stop(void)
 	MyI2C_W_SCL(1);
 	MyI2C_W_SDA(1);
 }
-/* 发送一个字节：高位先行，1时SDA置1,0时SDA置0 */
+/* 发送一个字节：高位先行，发送1时SDA置1,0时SDA置0 */
 void MyI2C_SendByte(uint8_t Byte)
 {
 	uint8_t i;
 	for(i = 0; i < 8; i++)
 	{
-		MyI2C_W_SDA(Byte & (0x80 >> i));  // 起始条件后SCL为低电平，可放数据
+		MyI2C_W_SDA(Byte & (0x80 >> i));  // 起始条件后SCL为低电平，可放数据到SDA
 		MyI2C_W_SCL(1); //  SCL高电平，读取
 		MyI2C_W_SCL(0); //  SCL恢复低电平，恢复数据写入
 	}
@@ -3234,6 +3234,229 @@ MPU6050的寄存器地址的宏定义：
 
 
 ## $I^2C$硬件实现
+
+STM32内部集成了硬件$I^2C$收发电路，可以**由硬件自动执行时钟生成、起始终止条件生成、应答位收发、数据收发等功能**，减轻CPU的负担。STM32的$I^2C$外设：
+
+- 支持多主机模型。
+- 支持7位/10位地址模式。
+- 支持不同的通讯速度，标准速度(高达100 kHz)，快速(高达400 kHz)。
+- 支持DMA。
+- 兼容SMBus协议。
+- STM32F103C8T6 硬件$I^2C$资源：I2C1、I2C2。
+
+### 外设框图
+
+![](img/18.I2C外设功能框图.png)
+
+1、发送：把一个字节的数据写到DATA REGISTER，当移位数据寄存器没有数据移位时，DR的值会转到移位寄存器里，移位时可以将要发送的下一个数据放到DR，一旦数据移位寄存器里的数据移位完成，下一个数据无缝衔接到移位寄存器里继续发送。
+
+- DR的值转到数据移位寄存器时会置状态寄存器的TXE位为1，表示DR为空。
+
+2、接收：输入的数据一位一位地从引脚移入到移位寄存器里，当一个数据收集完成之后就会从数据移位寄存器转到DR中，同时置标志位RXNE，表示接收寄存器（即DR）非空。
+
+3、收发控制：有控制寄存器CR。
+
+4、自身地址寄存器：STM32可作为从机，自身地址寄存器就是为这个设计的。
+
+5、帧错误校验：数据校验，当发送多数据帧时在这里硬件可以自动执行CRC校验计算。
+
+基本框图：
+
+![](img/18.I2C基本框图.png)
+
+使用复用输出输入模式，接上片上外设。
+
+### 发送接收流程
+
+![](img/18.主发送.png)
+
+![](img/18.主接收.png)
+
+![](img/18.波形.png)
+
+### 函数原型说明
+
+```c
+// 生成起始与终止条件
+void I2C_GenerateSTART(I2C_TypeDef* I2Cx, FunctionalState NewState);
+void I2C_GenerateSTOP(I2C_TypeDef* I2Cx, FunctionalState NewState);
+```
+
+```c
+// 应答配置
+void I2C_AcknowledgeConfig(I2C_TypeDef* I2Cx, FunctionalState NewState);
+```
+
+```c
+// 发送数据
+void I2C_SendData(I2C_TypeDef* I2Cx, uint8_t Data);
+// 接收数据
+uint8_t I2C_ReceiveData(I2C_TypeDef* I2Cx);
+```
+
+```c
+// 发送7位地址
+void I2C_Send7bitAddress(I2C_TypeDef* I2Cx, uint8_t Address, uint8_t I2C_Direction);
+```
+
+
+
+
+
+### $I^2C$外设的使用
+
+1. 第一步：配置I2C外设，初始化。
+2. 第二步：控制电路，实现指定地址写。
+3. 第三步：控制电路，实现指定地址读。
+
+初始化I2C2：
+
+```c
+void MySTM32I2C_Init(void)
+{
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_I2C2,ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB,ENABLE);
+	
+	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_OD;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10 | GPIO_Pin_11;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOB,&GPIO_InitStructure);
+	
+	I2C_InitTypeDef I2C_InitStructure;
+	I2C_InitStructure.I2C_Mode = I2C_Mode_I2C;
+	I2C_InitStructure.I2C_ClockSpeed = 50000;
+	// 时钟占空比，时钟频率超过100kHz，进入到快速状态才有用
+	I2C_InitStructure.I2C_DutyCycle = I2C_DutyCycle_2;
+	I2C_InitStructure.I2C_Ack = I2C_Ack_Enable;
+	I2C_InitStructure.I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit;
+	I2C_InitStructure.I2C_OwnAddress1 = 0x00;
+	I2C_Init(I2C2,&I2C_InitStructure);
+	
+	I2C_Cmd(I2C2,ENABLE);
+}
+```
+
+使用硬件I2C指定地址写：（结合主发送器传送序列）
+
+```c
+#define MPU6050_ADDRESS 0xD0
+/* 指定地址写一个字节的实现 */
+void MPU6050_WriteReg(uint8_t RegAddress, uint8_t Data)
+{
+	
+	I2C_GenerateSTART(I2C2, ENABLE);
+	while(I2C_CheckEvent(I2C2,I2C_EVENT_MASTER_MODE_SELECT) != SUCCESS);
+	
+	I2C_Send7bitAddress(I2C2,MPU6050_ADDRESS,I2C_Direction_Transmitter);
+	while(I2C_CheckEvent(I2C2,I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED) != SUCCESS);
+	
+	I2C_SendData(I2C2,RegAddress);
+	while(I2C_CheckEvent(I2C2,I2C_EVENT_MASTER_BYTE_TRANSMITTING) != SUCCESS);
+	
+	I2C_SendData(I2C2,Data);
+	while(I2C_CheckEvent(I2C2,I2C_EVENT_MASTER_BYTE_TRANSMITTED) != SUCCESS);
+	
+	I2C_GenerateSTOP(I2C2, ENABLE);
+}
+```
+
+使用硬件I2C指定地址读：（结合主接收器传送序列）
+
+```c
+#define MPU6050_ADDRESS 0xD0
+
+/* 计次记时，超时推出机制——带有超时推出的while循环 */
+void MPU6050_WaitEvent(I2C_TypeDef* I2Cx, uint32_t I2C_EVENT)
+{
+	uint32_t Timeout;
+	Timeout = 10000;
+	while (I2C_CheckEvent(I2Cx, I2C_EVENT) != SUCCESS)
+	{
+		Timeout --;
+		if (Timeout == 0)
+		{
+			// 实际项目中，分析评估后这里加上一些错误需要的处理
+			break;
+		}
+	}
+}
+/* 指定地址读一个字节的实现 */
+uint8_t MPU6050_ReadReg(uint8_t RegAddress)
+{
+	uint8_t Data;
+
+	I2C_GenerateSTART(I2C2, ENABLE);
+	MPU6050_WaitEvent(I2C2, I2C_EVENT_MASTER_MODE_SELECT);
+	
+	I2C_Send7bitAddress(I2C2, MPU6050_ADDRESS, I2C_Direction_Transmitter);
+	MPU6050_WaitEvent(I2C2, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED);
+	
+	I2C_SendData(I2C2, RegAddress);
+	MPU6050_WaitEvent(I2C2, I2C_EVENT_MASTER_BYTE_TRANSMITTED);
+	
+	I2C_GenerateSTART(I2C2, ENABLE);
+	MPU6050_WaitEvent(I2C2, I2C_EVENT_MASTER_MODE_SELECT);
+	
+	I2C_Send7bitAddress(I2C2, MPU6050_ADDRESS, I2C_Direction_Receiver);
+	MPU6050_WaitEvent(I2C2, I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED);
+	
+	I2C_AcknowledgeConfig(I2C2, DISABLE);
+	I2C_GenerateSTOP(I2C2, ENABLE);
+	
+	MPU6050_WaitEvent(I2C2, I2C_EVENT_MASTER_BYTE_RECEIVED);
+	Data = I2C_ReceiveData(I2C2);
+	
+	I2C_AcknowledgeConfig(I2C2, ENABLE);
+	return Data;
+}
+```
+
+MPU6050：
+
+```c
+void MPU6050_Init(void)
+{
+	MySTM32I2C_Init();
+	// 在电源管理寄存器1写入0x01，解除睡眠模式，选用陀螺仪时钟
+	MPU6050_WriteReg(0x6B,0x01);
+	MPU6050_WriteReg(0x6C,0x00);
+	MPU6050_WriteReg(0x19,0x09);
+	MPU6050_WriteReg(0x1A,0x06);
+	MPU6050_WriteReg(0x1B,0x18);
+	MPU6050_WriteReg(0x1c,0x18);
+	
+}
+/* 读取MPU6050的数据 */
+void MPU6050_GetData(int16_t* AccX,int16_t* AccY,int16_t* AccZ,int16_t* GyroX,int16_t* GyroY,int16_t* GyroZ)
+{
+	uint16_t DataH,DataL;
+	DataH = MPU6050_ReadReg(MPU6050_ACCEL_XOUT_H);
+	DataL = MPU6050_ReadReg(MPU6050_ACCEL_XOUT_L);
+	*AccX = (DataH << 8) | DataL;
+	
+	DataH = MPU6050_ReadReg(MPU6050_ACCEL_YOUT_H);
+	DataL = MPU6050_ReadReg(MPU6050_ACCEL_YOUT_L);
+	*AccY = (DataH << 8) | DataL;
+	
+	DataH = MPU6050_ReadReg(MPU6050_ACCEL_ZOUT_H);
+	DataL = MPU6050_ReadReg(MPU6050_ACCEL_ZOUT_L);
+	*AccZ = (DataH << 8) | DataL;
+	
+	DataH = MPU6050_ReadReg(MPU6050_GYRO_XOUT_H);
+	DataL = MPU6050_ReadReg(MPU6050_GYRO_XOUT_L);
+	*GyroX = (DataH << 8) | DataL;
+	
+	DataH = MPU6050_ReadReg(MPU6050_GYRO_YOUT_H);
+	DataL = MPU6050_ReadReg(MPU6050_GYRO_YOUT_L);
+	*GyroY = (DataH << 8) | DataL;
+	
+	DataH = MPU6050_ReadReg(MPU6050_GYRO_ZOUT_H);
+	DataL = MPU6050_ReadReg(MPU6050_GYRO_ZOUT_L);
+	*GyroZ = (DataH << 8) | DataL;
+
+}
+```
 
 
 
