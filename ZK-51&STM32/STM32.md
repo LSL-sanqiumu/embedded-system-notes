@@ -3464,6 +3464,102 @@ void MPU6050_GetData(int16_t* AccX,int16_t* AccY,int16_t* AccZ,int16_t* GyroX,in
 
 # SPI
 
+- SPI（Serial Peripheral Interface）是由Motorola公司开发的一种通用数据总线。
+- 四根通信线：SCK（Serial Clock）、MOSI（Master Output Slave Input）、MISO（Master Input Slave Output）、SS（Slave Select）。
+- 同步，全双工。
+- 支持总线挂载多设备（一主多从）。
+
+SPI传输更快，SPI协议没有严格规定最大传输速度，最大传输速度取决于芯片产商的设计需求；SPI硬件开销大，通信线个数比较多，通信工程中经常会出现资源浪费的现象。
+
+## SPI硬件电路
+
+![](img/19.spi电路.png)
+
+- 所有SPI设备的SCK、MOSI、MISO分别连在一起。
+- 主机另外引出多条SS控制线，分别接到各从机的SS引脚。
+- 输出引脚配置为推挽输出，输入引脚配置为浮空或上拉输入。
+- 从机未被选中时其MISO必须设置为高阻态。
+
+
+
+## 移位示意图
+
+移位示意图，SPI设计的核心，SPI的基本收发电路，使用了这样一个移位模型：
+
+![](img/19.移位示意图.png)
+
+上升沿向左移位，将最高位数据放到通信线上；下降沿，采样输入到主机、从机最低位。循环这个过程，就将从机的数据发到了主机，主机的数据发到了从机。（一般在接收时，会同一发送0x00或0xFF去到从机来置换数据）
+
+## SPI时序
+
+1、时序基本单元——起始、终止条件：
+
+![](img/19.基本单元1.png)
+
+2、时序基本单元——交换一个字节（模式0）：（CPOL——Clock Polarity，时钟极性；CPHA——Clock Phase，时钟相位）
+
+- CPOL=0：表示空闲状态时，SCK为低电平。
+- CPHA=0：表示SCK第一个边沿移入数据，第二个边沿移出数据。
+
+![](img/19.时序基本单元2.png)
+
+
+
+3、时序基本单元——交换一个字节（模式1）：（CPOL——Clock Polarity，时钟极性；CPHA——Clock Phase，时钟相位）
+
+- CPOL=0：表示空闲状态时，SCK为低电平。
+- CPHA=1：表示SCK第一个边沿移出数据，第二个边沿移入数据。
+
+![](img/19.时序基本单元3.png)
+
+
+
+4、时序基本单元——交换一个字节（模式2）：（CPOL——Clock Polarity，时钟极性；CPHA——Clock Phase，时钟相位）
+
+- CPOL=1：表示空闲状态时，SCK为高电平。
+- CPHA=0：表示SCK第一个边沿移入数据，第二个边沿移出数据。
+
+![](img/19.时序基本单元4.png)
+
+
+
+5、时序基本单元——交换一个字节（模式3）：（CPOL——Clock Polarity，时钟极性；CPHA——Clock Phase，时钟相位）
+
+- CPOL=1：表示空闲状态时，SCK为高电平。
+- CPHA=1：表示SCK第一个边沿移出数据，第二个边沿移入数据。
+
+![](img/19.时序基本单元5.png)
+
+
+
+## SPI数据流
+
+SPI数据流采用指令码+读写数据的格式。
+
+$I^2C$数据流采用地址+读写数据的格式，采用的是读写寄存器的模型。
+
+
+
+## W25Q64
+
+
+
+
+
+
+
+## SPI软件实现
+
+
+
+
+
+
+
+
+
+## SPI硬件实现
+
 
 
 
