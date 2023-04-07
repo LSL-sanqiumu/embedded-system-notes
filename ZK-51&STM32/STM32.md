@@ -500,56 +500,6 @@ AFIO（Alternate function I/O alternate）—— 备用功能IO口：将IO口连
 
 外部中断的使用分为两步：一是配置外部中断；二是定义中断程序（中断函数）。
 
-### 1、外部中断的配置：
-
-![](img/8.中断结构.png)
-
-外部中断整体结构图如上，简单来说使用外部中断就是配置好资源，将上面的外设GPIO到NVIC的通道打通。具体步骤：
-
-- 第一步：配置RCC，把涉及的外设的时钟都打开。（外设的时钟打开了才能使外设工作，EXTI和NVIC的时钟默认一直开启）
-- 第二步：配置GPIO，设置目标端口为输入模式。
-- 第三步：配置AFIO，选择使用的GPIO端口以便连接到EXTI。
-- 第四步：配置EXTI，选择触发方式——上升沿、下降沿、双边沿，选择触发响应方式——中断响应、事件响应。
-- 第五步：配置NVIC，给中断选择合适的优先级。
-
-配置示例，使用GPIOB的14端口：
-
-```c
-void GPIOB14_EXTI_Init(void){
-    /* 第一步：打开使用的外设的时钟 EXTI、NVIC这两个外设的时钟默认一直开启的不需要再配置*/
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
-    /* 第二步：根据结构体里面指定的参数初始化GPIO */
-    GPIO_InitTypeDef GPIO_InitStructure;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_14;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_Init(GPIOB, &GPIO_InitStructure);
-    /* 第三步：  配置AFIO*/
-	GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource14);
-    /* 第四步：根据结构体里面指定的参数初始化EXTI */
-    EXTI_InitTypeDef EXTI_InitStruct;
-    EXTI_InitStruct.EXTI_Line = EXTI_Line14;  //  14通道
-    EXTI_InitStruct.EXTI_LineCmd = ENABLE;    // 开启
-    EXTI_InitStruct.EXTI_Mode = EXTI_Mode_Interrupt; // 中断响应
-    EXTI_InitStruct.EXTI_Trigger = EXTI_Trigger_Falling; // 下降沿触发
-    EXTI_Init(&EXTI_InitStruct);
-    /* 第五步：NVIC配置 */
-    // 1.分组方式整个芯片只能使用一种，因此每一个项目只设置一次就行了
-    // 如果将分组放到模块里，那么所有模块的分组都应保持一致；直接放在主函数里设置分组就行了
-    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
-    // 2.根据结构体里面指定的参数初始化NVIC
-    NVIC_InitTypeDef NVIC_InitStruct;
-    NVIC_InitStruct.NVIC_IRQChannel = EXTI15_10_IRQn;   //  选择通道
-    NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;        // 启用
-    NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 1; // 抢占优先级
-    NVIC_InitStruct.NVIC_IRQChannelSubPriority = 1;        // 响应优先级
-    NVIC_Init(&NVIC_InitStruct);
-}
-```
-
-
-
 ### 一些库函数原型说明
 
 AFIO的库函数和GPIO的库函数在同一个文件里。AFIO的函数原型说明  stm32f10x_gpio.h ：
@@ -610,6 +560,58 @@ void NVIC_SystemLPConfig(uint8_t LowPowerMode, FunctionalState NewState);
 // 系统滴答时钟
 void SysTick_CLKSourceConfig(uint32_t SysTick_CLKSource);
 ```
+
+我
+
+### 1、外部中断的配置：
+
+![](img/8.中断结构.png)
+
+外部中断整体结构图如上，简单来说使用外部中断就是配置好资源，将上面的外设GPIO到NVIC的通道打通。具体步骤：
+
+- 第一步：配置RCC，把涉及的外设的时钟都打开。（外设的时钟打开了才能使外设工作，EXTI和NVIC的时钟默认一直开启）
+- 第二步：配置GPIO，设置目标端口为输入模式。
+- 第三步：配置AFIO，选择使用的GPIO端口以便连接到EXTI。
+- 第四步：配置EXTI，选择触发方式——上升沿、下降沿、双边沿，选择触发响应方式——中断响应、事件响应。
+- 第五步：配置NVIC，给中断选择合适的优先级。
+
+配置示例，使用GPIOB的14端口：
+
+```c
+void GPIOB14_EXTI_Init(void){
+    /* 第一步：打开使用的外设的时钟 EXTI、NVIC这两个外设的时钟默认一直开启的不需要再配置*/
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
+    /* 第二步：根据结构体里面指定的参数初始化GPIO */
+    GPIO_InitTypeDef GPIO_InitStructure;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_14;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(GPIOB, &GPIO_InitStructure);
+    /* 第三步：  配置AFIO*/
+	GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource14);
+    /* 第四步：根据结构体里面指定的参数初始化EXTI */
+    EXTI_InitTypeDef EXTI_InitStruct;
+    EXTI_InitStruct.EXTI_Line = EXTI_Line14;  //  14通道
+    EXTI_InitStruct.EXTI_LineCmd = ENABLE;    // 开启
+    EXTI_InitStruct.EXTI_Mode = EXTI_Mode_Interrupt; // 中断响应
+    EXTI_InitStruct.EXTI_Trigger = EXTI_Trigger_Falling; // 下降沿触发
+    EXTI_Init(&EXTI_InitStruct);
+    /* 第五步：NVIC配置 */
+    // 1.分组方式整个芯片只能使用一种，因此每一个项目只设置一次就行了
+    // 如果将分组放到模块里，那么所有模块的分组都应保持一致；直接放在主函数里设置分组就行了
+    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
+    // 2.根据结构体里面指定的参数初始化NVIC
+    NVIC_InitTypeDef NVIC_InitStruct;
+    NVIC_InitStruct.NVIC_IRQChannel = EXTI15_10_IRQn;   //  选择通道
+    NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;        // 启用
+    NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 1; // 抢占优先级
+    NVIC_InitStruct.NVIC_IRQChannelSubPriority = 1;        // 响应优先级
+    NVIC_Init(&NVIC_InitStruct);
+}
+```
+
+
 
 ### 2、定义中断程序：
 
