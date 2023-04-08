@@ -434,10 +434,10 @@ int main(void){
 
 STM32F1的中断：
 
-- 最多68个可屏蔽中断通道（中断源），包含EXTI、TIM、ADC、USART、SPI、I2C、RTC等多个外设。
+- **最多68个可屏蔽中断通道（中断源），包含EXTI、TIM、ADC、USART、SPI、I2C、RTC等多个外设。**
 - 中断响应优先级管理：使用**NVIC统一管理中断（分配优先级）**，每个中断通道都拥有**16个可编程的优先等级**，可对优先级进行分组，进一步设置抢占优先级和响应优先级。
 
-中断向量表：由于硬件限制，中断跳转只能调到指定的地址来指向中断服务程序，为了能让硬件跳到一个不固定的中断函数里，就需要在内存中定义一个地址的列表，这些地址列表是固定的。当中断发生后会跳转到这些固定的位置，然后由编译器在这些固定位置加上一条跳转到中断函数的代码，这样就可以使中断跳转跳到任何位置。这些在内存中的固定的地址列表就叫中断向量表，相当于跳到中断函数的一个跳板。
+中断向量表：由于硬件限制，中断跳转只能调到指定的地址来指向中断服务程序，为了能让硬件跳到一个不固定的中断函数里，就需要在内存中定义一个地址的列表，这些地址列表是固定的。当中断发生后会跳转到这些固定的位置，然后由编译器在这些固定位置加上一条跳转到中断函数的代码，这样就可以使中断跳转跳到任何位置。**这些在内存中的固定的地址列表就叫中断向量表**，相当于跳到中断函数的一个跳板。
 
 ## NVIC
 
@@ -463,17 +463,17 @@ NVIC 优先级分组：抢占优先级（可中断中断来优先执行的中断
 
 **外部中断支持的触发方式：**上升沿、下降沿、双边沿、软件触发。
 
-外部中断占用的通道数：16个GPIO_Pin，外加PVD输出、RTC闹钟、USB唤醒、以太网唤醒，总共20个中断线路。（后四个是来“蹭网”的，蹭外部中断的一个功能——从低功耗模式的停止模式下唤醒STM32；例如对于PVD电源电压检测，当电源从电压过低恢复时就需要借助外部中断退出停止模式；对于RTC闹钟来说，有时为了省电，RTC定一个闹钟后STM32会进入停止模式，等闹钟响的时候再唤醒，这时候就需要借助外部中断，其它类似。）
+**外部中断占用的通道数：**16个GPIO_Pin（每个Pin端口对应一个中断通道），外加PVD输出、RTC闹钟、USB唤醒、以太网唤醒，总共20个中断线路。（后四个是来“蹭网”的，蹭外部中断的一个功能——从低功耗模式的停止模式下唤醒STM32；例如对于PVD电源电压检测，当电源从电压过低恢复时就需要借助外部中断退出停止模式；对于RTC闹钟来说，有时为了省电，RTC定一个闹钟后STM32会进入停止模式，等闹钟响的时候再唤醒，这时候就需要借助外部中断，其它类似。）
 
 **中断触发后的响应方式：**中断响应（就是请求中断再由CPU执行中断处理函数）、事件响应（STM32对外部中断增加的额外功能，可以通过选择触发一个事件来触发其它外设操作；事件响应不会去请求CPU处理中断，属于外设之间的联合工作）。
 
 **2、外部中断的结构：**
 
-外部中断总流程框图：
+外部中断总流程框图：（Pin5-9共用一个中断通道，Pin10-15共用一个中断通道）
 
 ![](img/8.中断结构.png)
 
-AFIO（Alternate function I/O alternate）—— 备用功能IO口：将IO口连接到EXTI的通道，主要功能是复用功能引脚和用于中断引脚选择。（相同的Pin的IO口，通过AFIO选择后，只有一个能接到外部中断的通道上，因此相同的Pin的IO口不能同时触发中断）。AFIO 内部结构框图如下：
+AFIO（Alternate function I/O alternate）—— 备用功能IO口：将IO口连接到EXTI的通道，主要功能是**复用功能引脚**和用于**中断引脚选择**。（相同的Pin的IO口，通过AFIO选择后，只有一个能接到外部中断的通道上，因此相同的Pin的IO口不能同时触发中断）。AFIO 内部结构框图如下：
 
 ![](img/8.afio.png)
 
@@ -561,7 +561,7 @@ void NVIC_SystemLPConfig(uint8_t LowPowerMode, FunctionalState NewState);
 void SysTick_CLKSourceConfig(uint32_t SysTick_CLKSource);
 ```
 
-我
+
 
 ### 1、外部中断的配置：
 
@@ -588,12 +588,12 @@ void GPIOB14_EXTI_Init(void){
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_14;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_Init(GPIOB, &GPIO_InitStructure);
-    /* 第三步：  配置AFIO*/
+    /* 第三步：  配置AFIO，接上GPIO */
 	GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource14);
     /* 第四步：根据结构体里面指定的参数初始化EXTI */
     EXTI_InitTypeDef EXTI_InitStruct;
-    EXTI_InitStruct.EXTI_Line = EXTI_Line14;  //  14通道
-    EXTI_InitStruct.EXTI_LineCmd = ENABLE;    // 开启
+    EXTI_InitStruct.EXTI_Line = EXTI_Line14;  //  选择14通道，接上AFIO
+    EXTI_InitStruct.EXTI_LineCmd = ENABLE;    //  开启
     EXTI_InitStruct.EXTI_Mode = EXTI_Mode_Interrupt; // 中断响应
     EXTI_InitStruct.EXTI_Trigger = EXTI_Trigger_Falling; // 下降沿触发
     EXTI_Init(&EXTI_InitStruct);
@@ -603,8 +603,8 @@ void GPIOB14_EXTI_Init(void){
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
     // 2.根据结构体里面指定的参数初始化NVIC
     NVIC_InitTypeDef NVIC_InitStruct;
-    NVIC_InitStruct.NVIC_IRQChannel = EXTI15_10_IRQn;   //  选择通道
-    NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;        // 启用
+    NVIC_InitStruct.NVIC_IRQChannel = EXTI15_10_IRQn;   //  选择中断通道，接上EXTI
+    NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;        //  开启所选中断通道
     NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 1; // 抢占优先级
     NVIC_InitStruct.NVIC_IRQChannelSubPriority = 1;        // 响应优先级
     NVIC_Init(&NVIC_InitStruct);
