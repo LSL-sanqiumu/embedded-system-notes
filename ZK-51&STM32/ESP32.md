@@ -1,3 +1,7 @@
+# C3开发文档
+
+[ESP32-C3 快速参考手册 — MicroPython 1.18 documentation (01studio.cc)](https://docs.01studio.cc/esp32-c3/quickref.html#networking)
+
 # 开发环境
 
 ## Arduino
@@ -61,7 +65,7 @@ settings.json ：
 
 3、完成。
 
- 4、开发文档：[Quick reference for the ESP8266 — MicroPython latest documentation](https://docs.micropython.org/en/latest/esp8266/quickref.html#)，C3、S3的是8266的，ESP32则是ESP32。
+ 4、开发文档：[Quick reference for the ESP8266 — MicroPython latest documentation](https://docs.micropython.org/en/latest/esp8266/quickref.html#)，C3、S3的是8266的，ESP32则是ESP32。或者[ESP32-C3 快速参考手册 — MicroPython 1.18 documentation (01studio.cc)](https://docs.01studio.cc/esp32-c3/quickref.html#networking)。
 
 
 
@@ -86,13 +90,70 @@ ESP32C3—MINI 1模组：
 | V3                       | V5                       |
 |                          |                          |
 
+# GPIO口
+
+```python
+import machine
+import time
+pin1 = machine.Pin(1, machine.Pin.OUT)
+while 1:
+    pin1.value(0)
+    time.sleep(1)
+    pin1.value(1)
+    time.sleep(1)
+```
+
+# PWM
+
+```python
+from machine import Pin, PWM
+import time
+led1 = PWM(Pin(1))
+led1.freq(1000)
+while True:
+    for i in range(0, 1024):
+          led1.duty(i)
+          time.sleep_ms(1)
+          
+    for i in range(1023, -1, -1):
+          led1.duty(i)
+          time.sleep_ms(1)
+```
 
 
 
+# WiFi连接
+
+连接WiFi：（32只支持连接2.4G频段的WiFi）
+
+```python
+import network
+wlan = network.WLAN(network.STA_IF) # 创建 station 接口
+wlan.active(True)       # 激活接口
+wlan.scan()             # 扫描允许访问的SSID
+wlan.isconnected()      # 检查创建的station是否连已经接到AP
+wlan.connect('quiet', '19990903') # 连接到指定ESSID网络
+wlan.config('mac')      # 获取接口的MAC地址
+wlan.ifconfig() 
+```
 
 
 
+通过WiFi与电脑进行通信——发送数据：
 
+```python
+from socket import *
+udp_socket = socket(AF_INET,SOCK_DGRAM)
+dest_addr = ('192.168.68.73', 8080)
+send_data = "hello world"
+udp_socket.sendto(send_data.encode('utf-8'), dest_addr)
+```
+
+网络调试助手：[NetAssist(网络调试助手)官方下载_NetAssist(网络调试助手)最新版v4.3.25免费下载_3DM软件 (3dmgame.com)](https://soft.3dmgame.com/down/213757.html)
+
+通过WiFi与电脑进行通信——接收数据：
+
+Windows：ipconfig，查看无线局域网 IPv4 地址。
 
 
 
