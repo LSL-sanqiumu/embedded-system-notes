@@ -831,7 +831,7 @@ STM32的定时器分类：根据复杂度和应用场景分为了高级定时器
 
 ![](img/9.输入输出电路.png)
 
-左边是输入捕获电路，可用于测输入方波的频率；右边是输出比较电路，可用于输出PUM波形，驱动电机等；两者共用中间的寄存器。
+左边是输入捕获电路，可用于测输入方波的频率；右边是输出比较电路，可用于输出PWM波形，用于驱动电机等；两者共用中间的寄存器。
 
 **4、高级定时器结构框图：**
 
@@ -860,50 +860,6 @@ STM32的定时器分类：根据复杂度和应用场景分为了高级定时器
 
 
 ## 定时中断使用
-
-### 1、外部中断配置
-
-1. 第一步：RCC开启定时器时钟，打开后定时器的基准时钟和整个外设的工作时钟都会同时打开。
-2. 第二步：选择时钟源。
-3. 第三步：配置时基单元，包括预分频器、自动重装器、计数模式等。
-4. 第四步：配置输出中断控制，允许更新中断输出到NVIC。
-5. 第五步：在NVIC中打开定时器中断的通道，并分配一个优先级。
-6. 第六步：运行。
-
-```c
-void Timer_Init(void)
-{
-    /* 第一步：RCC开启时钟 */
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2,ENABLE);
-	/* 第二步：选择时钟源 */
-	TIM_InternalClockConfig(TIM2); // 定时器默认使用内部时钟，可以不写
-	/* 第三步：配置时基单元 */
-	TIM_TimeBaseInitTypeDef TIM_TimeBaseInitStructure;
-	TIM_TimeBaseInitStructure.TIM_ClockDivision = TIM_CKD_DIV1;
-	TIM_TimeBaseInitStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseInitStructure.TIM_Period = 10000 - 1;
-	TIM_TimeBaseInitStructure.TIM_Prescaler = 7200 - 1;
-	TIM_TimeBaseInitStructure.TIM_RepetitionCounter = 0;
-	TIM_TimeBaseInit(TIM2, &TIM_TimeBaseInitStructure);
-	/* 第四步：配置输出中断控制 */
-	TIM_ClearFlag(TIM2,TIM_IT_Update); // 避免刚初始化就进中断
-	TIM_ITConfig(TIM2,TIM_IT_Update,ENABLE);
-	
-	/* 第五步：NVIC配置 */
-    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
-    // 根据结构体里面指定的参数初始化NVIC
-    NVIC_InitTypeDef NVIC_InitStructure;
-    NVIC_InitStructure.NVIC_IRQChannel = TIM2_IRQn;   //  选择通道
-    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;        // 启用
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2; // 抢占优先级
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;        // 响应优先级
-    NVIC_Init(&NVIC_InitStructure);
-	/* 第六步：运行 */
-	TIM_Cmd(TIM2,ENABLE);  // 启动定时器
-}
-```
-
-
 
 ### 函数原型说明
 
@@ -970,6 +926,48 @@ FlagStatus TIM_GetFlagStatus(TIM_TypeDef* TIMx, uint16_t TIM_FLAG);
 void TIM_ClearFlag(TIM_TypeDef* TIMx, uint16_t TIM_FLAG);
 ITStatus TIM_GetITStatus(TIM_TypeDef* TIMx, uint16_t TIM_IT);
 void TIM_ClearITPendingBit(TIM_TypeDef* TIMx, uint16_t TIM_IT);
+```
+
+### 1、外部中断配置
+
+1. 第一步：RCC开启定时器时钟，打开后定时器的基准时钟和整个外设的工作时钟都会同时打开。
+2. 第二步：选择时钟源。
+3. 第三步：配置时基单元，包括预分频器、自动重装器、计数模式等。
+4. 第四步：配置输出中断控制，允许更新中断输出到NVIC。
+5. 第五步：在NVIC中打开定时器中断的通道，并分配一个优先级。
+6. 第六步：运行。
+
+```c
+void Timer_Init(void)
+{
+    /* 第一步：RCC开启时钟 */
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2,ENABLE);
+	/* 第二步：选择时钟源 */
+	TIM_InternalClockConfig(TIM2); // 定时器默认使用内部时钟，可以不写
+	/* 第三步：配置时基单元 */
+	TIM_TimeBaseInitTypeDef TIM_TimeBaseInitStructure;
+	TIM_TimeBaseInitStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+	TIM_TimeBaseInitStructure.TIM_CounterMode = TIM_CounterMode_Up;
+	TIM_TimeBaseInitStructure.TIM_Period = 10000 - 1;
+	TIM_TimeBaseInitStructure.TIM_Prescaler = 7200 - 1;
+	TIM_TimeBaseInitStructure.TIM_RepetitionCounter = 0;
+	TIM_TimeBaseInit(TIM2, &TIM_TimeBaseInitStructure);
+	/* 第四步：配置输出中断控制 */
+	TIM_ClearFlag(TIM2,TIM_IT_Update); // 避免刚初始化就进中断
+	TIM_ITConfig(TIM2,TIM_IT_Update,ENABLE);
+	
+	/* 第五步：NVIC配置 */
+    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
+    // 根据结构体里面指定的参数初始化NVIC
+    NVIC_InitTypeDef NVIC_InitStructure;
+    NVIC_InitStructure.NVIC_IRQChannel = TIM2_IRQn;   //  选择通道
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;        // 启用
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2; // 抢占优先级
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;        // 响应优先级
+    NVIC_Init(&NVIC_InitStructure);
+	/* 第六步：运行 */
+	TIM_Cmd(TIM2,ENABLE);  // 启动定时器
+}
 ```
 
 ### 2、中断函数定义
