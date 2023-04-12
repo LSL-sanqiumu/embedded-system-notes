@@ -361,6 +361,60 @@ vi或vim模式切换：（`:wq`（保存并退出）、`:q`（退出）、`:!q`�
 2. help：`help <command>`，在控制台打印出指定的命令的帮助信息。
 3. info：与 man 命令相似，能够显示出命令的相关资料和信息。
 
+# 熟悉磁盘管理
+
+### 概述
+
+Linux的每个分区都是组成整个文件系统的一部分，Linux的整个文件系统中包含了一整套的文件和目录；
+
+Linux采用“载入”的处理方法，Linux将一个分区和一个目录联系起来，分区与某个目录对应。
+
+![](img/sda.png)
+
+### 查看挂载状况
+
+- `lsblk`、`lsblk -f`：查看所有设备的挂载状况；
+
+### 新磁盘分区
+
+为新硬盘分区并挂载：
+
+1. 对新硬盘分区：
+   - `fdisk /dev/硬盘名`：硬盘名就像上面的sda，新硬盘一般是sdb，执行该命令后进入分区操作；
+   - 进入后输入命令（`m`：显示命令列表；`p`：显示磁盘分区；`n`：新增分区；`d`：删除分区；`w`：写入并退出；`q`：不保存退出；）；
+   - （开始分区后输入n，然后选择p，两次回车默认剩余全部空间，最后w写入并退出）。
+2. 格式化磁盘：`mkfs -t ext4 /dev/分区名`；
+3. 挂载，将磁盘和分区联系起来
+   - `mount 设备名称 挂载目录`，例如`mount /dev/sdb1 /newdisk`；（【注意】用命令行挂载，重启后会失效）
+   - 如果要实现永久挂载，就得通过修改`/etc/fstab`实现（`vim /etc/fstab`，添加，如下图，保存后退出执行`mount -a`立即生效，重启也会生效）；
+   - 取消挂载（要切换到外面）：`umount 设备名称(或挂载目录)`，例如`umount /dev/sdb1`、`umount /newdisk`。
+
+![](img/f.png)
+
+### 查看磁盘情况
+
+`df -h`：查看磁盘使用情况，如果使用达80%以上就得考虑清理空间或扩容；
+
+![](img/查询.png)
+
+- 例如`du -h --max-depth=1 /opt`、`du -ha --max-depth=1 /opt`；
+
+### 实用指令
+
+- `ls -l /opt | grep "^-" |wc -l`：统计/opt文件夹下文件的个数（不包括子文件夹的）；
+- `ls -l /opt | grep "^d" |wc -l`：统计/opt文件夹下目录的个数；
+- `ls -lR /opt | grep "^-" |wc -l`：统计/opt文件夹下全部文件的总数（递归统计）；
+- `ls -lR /opt | grep "^d" |wc -l`：统计/opt文件夹下全部目录的总数（递归统计）；
+- `tree 目录名`：以树状显示目录结构（如果没有tree，使用`yum install tree`安装）。
+
+# 熟悉GCC命令
+
+
+
+
+
+
+
 # 熟悉网络配置
 
 ## NAT网络原理
@@ -390,6 +444,8 @@ vi或vim模式切换：（`:wq`（保存并退出）、`:q`（退出）、`:!q`�
 ping用于测试主机之间的网络连通性：`ping 目的主机`，例如`ping www.baidu.com`。
 
 ## 虚拟机静态ip配置
+
+CentOS为例：
 
 1. 自动配置，会自动获取到IP地址，避免IP冲突（IP可能会变化，系统界面的网络连接设置可设置为自动）
 
@@ -450,7 +506,7 @@ ping用于测试主机之间的网络连通性：`ping 目的主机`，例如`pi
 - hosts文件：是用来存放IP与主机名的映射关系的文件。
 - DNS（Domain Name System），域名系统，互联网上域名与IP地址相互映射的一个分布式数据库。
 
-浏览器输入请求地址后的域名解析：
+浏览器输入请求地址后的域名解析过程：
 
 1. 浏览器先查缓存中有没有该域名解析后的IP地址，有就调用；如果没有就检测DNS缓存器，如果有就返回。（本地解析器缓存）
 2. 一般情况下，电脑成功访问某个网页，在一定时间内浏览器或操作系统会缓存DNS解析记录（IP地址），
@@ -508,7 +564,7 @@ ps指令，用来参考系统中进程的执行状况、是否在执行等，可
 
 service——服务是运行在后台的进程，通常都会监听端口来等待其它程序的请求，例如mysqld、sshd、防火墙等，因此又称为守护进程。
 
-**systemctl指令：**CentOS7后很多指令都使用这个管理
+**systemctl指令：**（CentOS7后很多指令都使用这个管理）
 
 1. 状态管理：`systemctl [start | stop | restart | status] 服务名`，对服务进行管理(立即生效但只是暂时的)，用于开启服务、停止服务、重启服务、查看服务状态等。
 
@@ -522,6 +578,8 @@ service——服务是运行在后台的进程，通常都会监听端口来等�
    3. `systemctl disable 服务名`：停止服务开机自启动（永久生效）。
 
 ## 防火墙
+
+### CentOS的
 
 **关闭防火墙服务**：（firewalld.service）
 
@@ -547,6 +605,30 @@ Windows的telnet需要在Windows功能里开启 Telnet Client。
 3. `firewall-cmd --permanent --add-rich-rule="rule family="ipv4" source address="192.168.44.101" port protocol="tcp" port="8080" accept"`：允许该ip（192.168.44.101）访问指定端口。
 4. `firewall-cmd --permanent --remove-rich-rule="rule family="ipv4" source address="192.168.44.101" port port="8080" protocol="tcp" accept"`：移除规则。
 
+### Ubuntu的
+
+Ubuntu的防火墙是ufw：
+
+- 安装：`sudo apt install ufw`。
+- 查看是否开启：`sudo ufw status verbose`，显示状态为不活动则是未开启防火墙，同时也会显示出设置了的允许外部访问的端口。
+- 开启：`sudo ufw enable`。
+- 关闭：`sudo ufw disable`。
+- 默认配置：`sudo ufw default deny`，设置默认的 incoming 策略更改为 deny（表示关闭所有外部对本机的访问，安装防火墙开启后的默认策略也是这个）。
+
+打开或关闭端口：
+
+```c
+sudo ufw allow 53   // 允许外部访问53端口(tcp/udp)
+
+sudo ufw allow 3690 // 允许外部访问3690端口(svn)
+
+sudo ufw allow from 192.168.1.111   // 允许此IP访问所有的本机端口
+
+sudo ufw allow proto tcp from 192.168.0.0/24 to any port 22  // 允许指定的IP段访问特定端口
+
+sudo ufw delete allow smtp // 删除上面建立的某条规则，比如删除svn端口就是 sudo ufw delete allow 3690 
+```
+
 
 
 ## 动态监控进程
@@ -570,9 +652,11 @@ Windows的telnet需要在Windows功能里开启 Telnet Client。
 1. `netstat [选项]`：用来查看网络情况；（`-an`：按一定顺序排列输出；`-p`：显示哪个进程在调用）。
 2. `ping 对方的ip地址`：检测远程主机是否正常，检测两部主机间的网线或网卡故障。
 
-# 熟悉rpm和yum
+# 软件包管理
 
-## rpm
+## CentOS下
+
+### rpm
 
 RPM  是Red-Hat Package Manager（红帽软件包管理器）的缩写，用于互联网下载包的打包及安装，rpm生成具有.rpm拓展名的文件；（这一文件格式名称虽然打上了RedHat的标志，但是其原始设计理念是开放式的，包括OpenLinux、S.u.S.E.以及Turbo Linux等Linux的分发版本都有采用，可以算是公认的行业标准了）。
 
@@ -595,7 +679,7 @@ rpm包卸载：
 1. `rpm -ivh RPM包的全路径名称`：i是install，v是verbose（提示），h是hash（进度条）。
 2. 例如：`rpm -ivh /opt/firefox-60.2.2-1.el7.centos.x86_64.rpm `，安装火狐（输入rpm包所在目录后输入头部的一些信息再按tab键可快速补全）。
 
-## yum
+### yum
 
 yum：一个shell前端软件包管理器，基于rpm包管理，能够从指定的服务器自动下载rpm包并安装，可以自动处理依赖性关系，并且一次安装所有依赖的软件包。
 
@@ -620,7 +704,68 @@ yum：一个shell前端软件包管理器，基于rpm包管理，能够从指定
 - **yum clean oldheaders**：清除缓存目录下旧的 headers
 - **yum clean, yum clean all (= yum clean packages; yum clean oldheaders)** ：清除缓存目录下的软件包及旧的 headers
 
-# 熟悉服务器日志
+## Ubuntu下
+
+摘自：[Ubuntu安装软件有这5种方法 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/270908077)。
+
+### apt
+
+不只Ubuntu，其实Debian系统的系统（Debian，Ubuntu，Deepin，Raspbian等）都可以使用apt命令安装软件。
+
+在Ubuntu 16 之前要使用`apt-get install 软件包`来安装，**在Ubuntu 16 之后官方建议直接使用`apt install 软件包`来安装。**
+
+`apt` 命令用法：
+
+1. 更新软件列表：`apt update -y`
+2. 搜索软件: `apt search 关键字`
+3. 显示软件包详情：`apt show 软件包名`
+4. 安装软件：`apt install 软件包名`
+5. 升级指定软件：`apt upgrade 软件包名`
+6. 升级所有可以升级的软件：`apt upgrade`
+7. 卸载软件：`apt remove 软件包名`
+8. 卸载软件并移除软件依赖：`apt autoremove 软件包名`
+9. 卸载软件并删除配置文件：`apt remove 软件包名 --purge`
+
+示例——安装gimp：
+
+```c
+sudo apt install gimp -y
+```
+
+### snap
+
+`snap`是在Ubuntu 16 新添加的一种软件包格式。这种格式把软件运行所需的依赖全部打包到软件包里面， 运行的时候持载到一个虚拟的环境里面运行。所有这种格式的软件包**安装时不会破坏系统现有的软件包依赖**。
+
+`snap`命令用法：
+
+1. 搜索软件包：`snap find 关键字`
+2. 显示软件包详情：`snap info 软件包名`
+3. 安装软件包：`snap install 软件包名`
+4. 升级指定软件：`snap refresh 软件包名`
+5. 升级所有可以升级的软件：`snap refresh`
+6. 卸载软件：`snap remove 软件包名`
+
+也是直接在终端运行命令就可以安装，比如使用下面的命令安装wps:
+
+```bash
+sudo snap install wps-2019-snap
+```
+
+### dpkg命令
+
+上面3种方法都只能安装已经添加的软件源里面的软件。但像网易云音乐、百度网盘这些并没有在软件源里面，而是在官网提供deb后缀的软件包下载，这种软件我们就要用到dpkg命令来安装了。
+
+```bash
+sudo dpkg -i 文件名.deb
+```
+
+### 源码编译安装
+
+
+
+
+
+# 熟悉CentOS的日志
 
 **日志管理**
 
@@ -771,7 +916,7 @@ Linux世界里，一切皆文件！（Linux把硬件都当作文件来处理）�
 |         **/var**         | 这个目录中存放着会不断扩充着的东西，习惯将经常被修改的目录放在这个目录下，包括各种日志文件 |
 |         **/opt**         | - 这是给主机额外安装软件所存放的目录，如安装ORACLE数据库就可放到该目录下。默认为空；<br/>- 约定俗成，要安装的软件下载好先拷贝到该目录。 |
 
-# 了解
+# 用户组、权限、任务调度
 
 ## 用户组管理
 
@@ -873,59 +1018,7 @@ Linux后台运行着一个用于管理任务调度的程序，可以利用其执
 - 先执行`at 5pm + 2 days`用来添加该规则下的一次性定时任务，然后就添加任务，例如`/bin/ls /home`；
 - `at now + 2 minutes`，`date >> /home/mydate.txt`；
 
-
-
-## 磁盘
-
-### 概述
-
-Linux的每个分区都是组成整个文件系统的一部分，Linux的整个文件系统中包含了一整套的文件和目录；
-
-Linux采用“载入”的处理方法，Linux将一个分区和一个目录联系起来，分区与某个目录对应。
-
-![](img/sda.png)
-
-### 查看挂载状况
-
-- `lsblk`、`lsblk -f`：查看所有设备的挂载状况；
-
-### 新磁盘分区
-
-为新硬盘分区并挂载：
-
-1. 对新硬盘分区：
-   - `fdisk /dev/硬盘名`：硬盘名就像上面的sda，新硬盘一般是sdb，执行该命令后进入分区操作；
-   - 进入后输入命令（`m`：显示命令列表；`p`：显示磁盘分区；`n`：新增分区；`d`：删除分区；`w`：写入并退出；`q`：不保存退出；）；
-   - （开始分区后输入n，然后选择p，两次回车默认剩余全部空间，最后w写入并退出）。
-2. 格式化磁盘：`mkfs -t ext4 /dev/分区名`；
-3. 挂载，将磁盘和分区联系起来
-   - `mount 设备名称 挂载目录`，例如`mount /dev/sdb1 /newdisk`；（【注意】用命令行挂载，重启后会失效）
-   - 如果要实现永久挂载，就得通过修改`/etc/fstab`实现（`vim /etc/fstab`，添加，如下图，保存后退出执行`mount -a`立即生效，重启也会生效）；
-   - 取消挂载（要切换到外面）：`umount 设备名称(或挂载目录)`，例如`umount /dev/sdb1`、`umount /newdisk`。
-
-![](img/f.png)
-
-### 查看磁盘情况
-
-`df -h`：查看磁盘使用情况，如果使用达80%以上就得考虑清理空间或扩容；
-
-![](img/查询.png)
-
-- 例如`du -h --max-depth=1 /opt`、`du -ha --max-depth=1 /opt`；
-
-### 实用指令
-
-- `ls -l /opt | grep "^-" |wc -l`：统计/opt文件夹下文件的个数（不包括子文件夹的）；
-- `ls -l /opt | grep "^d" |wc -l`：统计/opt文件夹下目录的个数；
-- `ls -lR /opt | grep "^-" |wc -l`：统计/opt文件夹下全部文件的总数（递归统计）；
-- `ls -lR /opt | grep "^d" |wc -l`：统计/opt文件夹下全部目录的总数（递归统计）；
-- `tree 目录名`：以树状显示目录结构（如果没有tree，使用`yum install tree`安装）。
-
-
-
-
-
-# 了解shell编程
+# 熟悉shell编程
 
 ## 概述
 
