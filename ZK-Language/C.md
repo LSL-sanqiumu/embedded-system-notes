@@ -303,7 +303,7 @@ int main(){
 ```c
 #include <stdio.h>
 int main(){
-    /* C99为类型大小提供%zd转换说明  些不支持C99和C11的编译器可用%u或%lu代替%zd */
+    /* C99为类型大小提供%zd转换说明  一些不支持C99和C11的编译器可用%u或%lu代替%zd */
     // 查看各类型所占字节数
     printf("Type int has a size of %zd bytes.\n", sizeof(int));
     printf("Type char has a size of %zd bytes.\n", sizeof(char));
@@ -358,6 +358,7 @@ C99 新增了两个头文件 stdint.h 和 inttypes.h， 以确保C语言的类�
 #include <stdio.h>
 #include <stdint.h>
 int main(){
+    // t是typedef，表示是自定义过的类型
     int32_t n = 99;
 }
 ```
@@ -558,9 +559,13 @@ int main(){
 2. 两种类型运算：两个值会被分别转换成两种类型的更高级别。
 3. 类型级别（高 ===> 低 ）：long double、 double、 float、 unsignedlong、long、 long long、 unsigned long、 long、 unsigned int、 int。  （例外：当 long 和 int 的大小相同时， unsigned int比long的级别高  ）
 4. 赋值表达式中：计算的最终结果会被转换成被赋值变量的类型。   
-5. 函数传参时：char和short被转换成int， float被转换成double。  
+5. ~~函数传参时：char和short被转换成int， float被转换成double。~~
 
 强制类型转换：使用`(type)`。
+
+关于表达式：https://blog.csdn.net/astrotycoon/article/details/50857326
+
+
 
 ## 运算符
 
@@ -600,14 +605,25 @@ int arr[6] = {[5]=12};  // 只将最后一个初始化为12，其它的将默认
 
 4、一维数组，数组名表示指向首元素的一个地址，可以使用解引用操作  `*{arr+index}`  取出数组中的值。
 
+5、数组声明并初始化后里面的数才会有默认初始值，只声明后再为某个元素赋值也是不会有默认初始值。
+
 ## 二维数组
 
 二维数组，即数组中存储数组。
 
 ``` c
-// 两个二维数组内的值一致
+// 声明并初始化 两个二维数组内的值一致
 int arr1[2][3] = {1,2,3,4,5,6};
 int arr2[2][3] = {{1,2,3},{4,5,6}};
+// 先声明后初始化
+int arr2[2][3];
+for(int i = 0; i < 2; i++)
+{
+    for(int j = 0; j < 3; j++)
+    {
+        arr[i][j] = 1;
+    }
+}
 ```
 
 二维数组中，数组名表示的是指向首元素的地址，而`arr[0]`表示指向第一行的数组的首元素的地址。
