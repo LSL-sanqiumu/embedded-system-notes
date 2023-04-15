@@ -287,33 +287,51 @@ finish。
 
 2. 修改成功后，输入命令 `su root`，再输入密码即可登录root用户——最高权限用户，相当于Windows的管理员账户。
 
-17、设置root用户远程登录：
+3. 安装vim：`sudo apt install vim`。如果显示例如这样的`无法获得锁 /var/lib/dpkg/lock-frontend`，那就执行以下：
 
-1. `su root` 命令切换到root用户。
+```java
+sudo rm /var/cache/apt/archives/lock
+sudo rm /var/lib/dpkg/lock-frontend  //注意自己无法获得锁的路径
+sudo apt install vim
+```
 
-2. 安装vim：`sudo apt install vim`。如果显示例如这样的`无法获得锁 /var/lib/dpkg/lock-frontend`，那就执行以下：
+执行最后一步提示` 您在 /var/cache/apt/archives/ 上没有足够的可用空间`，那就是硬盘内存不够用了，执行`df -lh`发现根目录`/`占用100%。
 
-   ```java
-   sudo rm /var/cache/apt/archives/lock
-   sudo rm /var/lib/dpkg/lock-frontend  //注意自己无法获得锁的路径
-   sudo apt install vim
-   ```
+`sudo apt-get clean`：清理缓存。
 
-   执行最后一步提示` 您在 /var/cache/apt/archives/ 上没有足够的可用空间`，那就是硬盘内存不够用了，执行`df -lh`发现根目录`/`占用100%。
+`sudo apt remove linux-image-*`：清理旧版本内核。
 
-   `sudo apt-get clean`：清理缓存。
+`apt --fix-broken install`
 
-   `sudo apt remove linux-image-*`：清理旧版本内核。
+再重新安装vim：`sudo apt install vim`。
 
-   `apt --fix-broken install`
+17、开启root用户登录并配置远程登录：
 
-   再重新安装vim：`sudo apt install vim`。
+开启root用户登录：
 
-3. 修改配置文件：`vim /etc/ssh/sshd_config `，如下图
+a.注释如下两个文件的对应行：文件为/etc/pam.d/gdm-password和/etc/pam.d/gdm-autologin，找到如下代码后在文件前面加入#注释：
+
+```ssh
+auth required pam_succeed_if.so user != root quiet_success
+```
+
+b.修改profile文件（重新设置了root密码才会有该文件）：`sudo vim /root/.profile`，注释掉或者删除下面的行
+
+```sshd
+#mesg n 2＞ /dev/null || true   # 注释这行
+tty -s && mesg n || true        # 添加这行
+```
+
+配置远程登录：
+
+1. 安装openssh：`sudo apt install openssh-server`。
+
+   1. 修改配置文件：`vim /etc/ssh/sshd_config `，将`#PermitRootLogin prohibit-password`改为`PermitRootLogin yes`，如下图
+
 
    ![](img/1.ubuntu远程root登录.png)
 
-4. 重启ssh服务：`service ssh restart`。
+2. 重启ssh服务：`sudo systemctl restart ssh`。
 
 ### 安装软件包
 
