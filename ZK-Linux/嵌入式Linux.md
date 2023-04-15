@@ -1,3 +1,9 @@
+# Linux方向
+
+Linux底层开发：内核、驱动。
+
+Linux应用层开发：应用程序。
+
 # Linux基础总结
 
 韦东山的教程需要有基础的人去看不会懵逼，他写的那种面向对象写裸机和驱动框架，需要多看几遍才能在脑海中印象，关键需要跟着写代码。或者可以看正点原子的嵌入式Linux教程，非常适合0基础的人去学习。
@@ -169,10 +175,10 @@ deb-src http://mirrors.aliyun.com/Ubuntu/ bionic-backports main restricted unive
 
 嵌入式开发没有好用的IDE，都是使用各种工具来完成开发。整个Linux开发环境包括：
 
-1. Linux发行版系统：用于编译源码，将编译好的代码下载到嵌入式硬件中。（虚拟机安装Linux系统）
+1. Linux发行版系统：用于编译源码，将编译好的代码下载到嵌入式硬件中。（虚拟机安装Linux系统与交叉编译环境）
 2. 远程登录软件：将源码上传到Linux里。（VSCode、MobaXterm等）
 
-BSP即Board Support Package，板级支持包，介于硬件和操作系统之间的一层，是属于操作系统的一部分，主要目的是为了支持操作系统，使之能够更好地在硬件主板上运行。BSP针对特定单板而设计。
+BSP即Board Support Package，板级支持包，介于硬件和操作系统之间的一层，是属于操作系统的一部分，主要目的是为了支持操作系统，使之能够更好地在硬件主板上运行。BSP针对特定单板而设计。BSP中通常包含Linux内核、BootLoader、交叉编译工具链等。
 
 ## BSP介绍
 
