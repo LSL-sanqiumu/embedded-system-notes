@@ -1067,7 +1067,7 @@ GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable,ENABLE);
 - 可配置为PWMI模式，同时测量频率和占空比。
 - 可配合主从触发模式，实现硬件全自动测量。
 
-频率测量方法：
+频率测量方法介绍：
 
 ![](img/11.频率测量.png)
 
@@ -1095,13 +1095,14 @@ GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable,ENABLE);
 
 ![](img/11.输入捕获细节.png)
 
-参考手册 P284-285：
+参考手册 P284-285，主从触发模式介绍：
 
-主模式：将定时器内部信号映射到TRGO引脚，用于触发别的外设。
+- 主模式：将定时器内部信号映射到TRGO引脚，用于触发别的外设。
 
-触发源选择：选择从模式的触发信号源。
+- 触发源选择：选择从模式的触发信号源。
 
-从模式：接收其它外设信号或者自身外设外的一些信号，用于控制自身定时器的运行。（例如重置定时器）
+- 从模式：接收其它外设信号或者自身外设外的一些信号，用于控制自身定时器的运行。（例如重置定时器）
+
 
 三个模式对应库函数中的三个函数，配置、调用即可。
 
@@ -1120,9 +1121,9 @@ GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable,ENABLE);
 
 ![](img/11.PWM基本结构.png)
 
-PWMI模式（PWM输入模式），使用两个通道同时捕获一个引脚，这样就可以同时测量周期和占空比。TI1FP1通道设置上升沿触发，TI1FP2通道设置下降沿触发，这样CCR1的计数值就是一整个周期的计数值，CCR2就是高电平的计数值，那么占空比 就为`CCR2 / CCR1`。
+PWMI模式（PWM输入模式），使用两个通道同时捕获一个引脚，这样就可以同时测量周期和占空比。TI1FP1通道设置上升沿触发，TI1FP2通道设置下降沿触发，这样CCR1的计数值就是一整个周期的计数值（每次捕获后计数器清零才能表示周期），CCR2就是高电平的计数值（因为上升沿触发捕获后将计数器清0，所以才能代表高电平存续时间），那么占空比 就为`CCR2 / CCR1`。
 
-
+计数器清零的方式：
 
 ### 函数原型说明
 
@@ -1178,7 +1179,9 @@ uint16_t TIM_GetCapture4(TIM_TypeDef* TIMx);
 6. 第六部：选择从模式触发后执行的操作。
 7. 第七步：开启定时器。
 
-示例——使用输入捕获功能测频率：
+#### 示例1：
+
+使用基本输入捕获功能测频率：（捕获到输入的上升沿就触发计数器的值的转运，到下一次上升沿时就能得到这个周期内的计数器的计算次数，然后根据计数器的频率计算出输入的波形的频率）
 
 ```c
 void IC_Init(void)
@@ -1215,9 +1218,67 @@ void IC_Init(void)
 	/* 第六步： */
 	TIM_Cmd(TIM3,ENABLE);
 }
+uint32_t IC_GetFreq(void)
+{
+	// Hz
+	return 1000000 / (TIM_GetCapture1(TIM3) + 1);
+}
 ```
 
-示例——使用输入捕获功能测频率、测占空比：使用TIM_PWMIConfig。
+#### 示例2：
+
+使用PWMI输入捕获功能测频率、测占空比：使用TIM_PWMIConfig。
+
+```c
+void IC_Init(void)
+{
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3,ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA,ENABLE);
+	
+	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA,&GPIO_InitStructure);
+	
+	TIM_InternalClockConfig(TIM3);
+	
+	TIM_TimeBaseInitTypeDef TIM_TimeBaseInitStructure;
+	TIM_TimeBaseInitStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+	TIM_TimeBaseInitStructure.TIM_CounterMode = TIM_CounterMode_Up;
+	TIM_TimeBaseInitStructure.TIM_Period = 65536 - 1;   // ARR
+	TIM_TimeBaseInitStructure.TIM_Prescaler = 72 - 1; // PSC
+	TIM_TimeBaseInitStructure.TIM_RepetitionCounter = 0;
+	TIM_TimeBaseInit(TIM3, &TIM_TimeBaseInitStructure);
+	
+	
+	TIM_ICInitTypeDef TIM_ICInitStructure;
+	TIM_ICInitStructure.TIM_Channel = TIM_Channel_1;
+	TIM_ICInitStructure.TIM_ICFilter = 0xF;
+	TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Rising;
+	TIM_ICInitStructure.TIM_ICPrescaler = TIM_ICPSC_DIV1;
+	TIM_ICInitStructure.TIM_ICSelection = TIM_ICSelection_DirectTI;
+	TIM_ICInit(TIM3, &TIM_ICInitStructure);
+	TIM_PWMIConfig(TIM3,&TIM_ICInitStructure); // 
+	
+	TIM_SelectInputTrigger(TIM3,TIM_TS_TI1FP1);
+	TIM_SelectSlaveMode(TIM3,TIM_SlaveMode_Reset);
+	
+	TIM_Cmd(TIM3,ENABLE);
+}
+
+uint32_t IC_GetFreq(void)
+{
+	// Hz
+	return 1000000 / (TIM_GetCapture1(TIM3) + 1);
+}
+
+uint32_t IC_GetDuty(void)
+{
+	// 占空比
+	return (TIM_GetCapture2(TIM3)+1)*100 / (TIM_GetCapture1(TIM3) + 1);
+}
+```
 
 
 
@@ -1229,7 +1290,7 @@ Encoder Interface —— 编码器接口：
 - **每个高级定时器和通用定时器都拥有1个**编码器接口。（如果一个定时器配置成了编码器，基本上干不了其它活了）
 - TIM编码器接口的两个输入引脚借用了输入捕获的通道1和通道2。
 
-编码器：是一种将旋转位移转换成一串数字脉冲信号的旋转式传感器，可把角位移或直线位移转换成电平信号。
+什么是编码器？编码器是一种将旋转位移转换成一串数字脉冲信号的旋转式传感器，可把角位移或直线位移转换成电平信号。
 
 正交编码器：
 
