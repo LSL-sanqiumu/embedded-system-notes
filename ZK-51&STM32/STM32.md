@@ -1,151 +1,3 @@
-# 理解时钟
-
-## 脉冲信号
-
-**脉冲信号：**相对于连续信号在整个信号周期内短时间发生的信号，大部分信号周期内没有信号。就象人的脉搏一样。现在一般指数字信号，它已经是一个周期内有一半时间（甚至更长时间）有信号。计算机内的信号就是脉冲信号，又叫数字信号。
-
-- 同步脉冲信号：为确保接收和发送扫描能同步的一种制约信号。
-- 复合同步脉冲信号：为了使收、发两端扫描完全同步，发送端要给接收端提供同步脉冲信号。它由行同步脉冲和场同步脉冲组合而成的。
-
-**脉冲电路：**脉冲电路是专门用来产生电脉冲和对电脉冲进行放大、变换和整形的电路。
-
-**脉冲形状：**利用脉冲整形的程序可以产生不同的脉冲形状，根据应用的不同，最佳的脉冲形状也随之不同。
-
-- 方波
-  方波脉冲包括方波、Boxcar函数及矩形函数等。在数字信号中，由低准位变到高准位的转态称为上升缘，而由高准位变到低准位的转态称为下降缘。若数字系统中会侦测上升缘或下降缘，或在此情形下才动作，称为 `边缘触发`。数字时序图就是由许多方波组成的例子。
-- Nyquist脉冲
-  Nyquist脉冲是符合Nyquist码间干扰标准的脉冲，在资料传输有其重要性
-- 高斯脉冲
-  高斯脉冲是成形为高斯函数的脉冲，是由高斯滤波器产生，它是在没有过冲及最小群延时条件下，暂态最快的脉冲
-
-**脉冲信号的应用——时钟信号：**时钟信号是由电路产生的具有周期性的脉冲信号，产生这种信号的电路一般有RC震荡电路、晶体震荡电路、石英/陶瓷谐振电路等。（什么是时钟（时钟信号）呢？简单的来讲就是由电路产生的具有周期性的脉冲信号，它不一定就是方波，更不一定就是50%占空比的方波，**系统中时钟信号被用来为系统中多个同步执行的电路之间、为不同系统之间的数据传输提供参考基准。**[电子产品的心脏-时钟 - 时钟信号的关键指标 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/95729800)）
-
-## 时钟信号
-
-**时钟信号：**又称时间脉冲信号(简称时脉?)，计算机科学及相关领域用语，此信号在 `同步电路`当中，扮演 `计时器`的角色，并组成电路的电子组件。**只有当同步信号到达时，相关的触发器才按输入信号改变输出状态，因此使得相关的电子组件得以同步运作。**
-
-> 在数字电路(计算机)中分别以高电平和低电平表示1状态和0状态。此时电信号的波形是非正弦波，为`脉冲信号，又叫数字信号`
->
-> 说法1：在时序逻辑电路中，为了控制各触发器同步协调一致的工作，通常需要一个稳定精确的时钟脉冲信号
-> 说法2：在同步时序电路中，`作为时钟信号的矩形脉冲`控制和协调着整个系统的工作
-
-辅助理解时钟信号于CPU的作用——引用知乎上的一个解释：
-
--  CPU里可以粗略的认为是很多很多很多小电容（充满电了算1，没充电算0），每次计算就是这些小电容翻来覆去的充电放电。
-   很多小电容组成一个个基本的模块，比如输入到输出。输入到输出是有延迟的，因为前面说了，电容要充电放电，这个需要时间。
-   基本小模块各种连接，组成复杂的功能，也就是前面小模块的输出会被后面模块当成输入。
-- 模块连接行成功能，那么后面的模块要如何知道前面的模块到底是已经完成充电/放电了呢，还是正在充电放电呢？另一方面，路径越长从最开始输入到最终的输出的时间就越长，也就是路径长度不同延迟就不同，所以你很难保证每个针脚上的数据严格的同时到达。
-- 所以就引入了时钟机制：用一个统一的时钟脉冲来同步各个小模块。脉冲没来，小模块抓紧时间充电放电，脉冲来了，模块一起动。可以简单的认为时钟脉冲来一下，CPU就动一下。下个时钟脉冲一直不来，CPU就一直不动。
-   (**保证运算时，数据的读-写-计算必须要严格的按照顺序依次进行**)
-
-**时钟边沿触发：**时钟边沿触发信号意味着所有的状态变化都发生在时钟边沿到来时刻。**只有当同步信号到达时，相关的触发器才会按输入信号改变输出状态，使得相关的电子组件得以同步运作。**控制逻辑单元状态量变化的是时钟信号的上升沿还是下降沿，取决于具体的逻辑设计。**时钟不是作用在ALU（逻辑控制单元）上而是寄存器上**，这种特殊的寄存器叫：时钟寄存器，只有在时钟信号的上升沿（比如说5V高位）才能往里写入，其他时候，输入只能在外面等着。
-
-**时钟信号的产生：**
-
-- 一种是利用各种形式的多谐振荡电路直接产生所需要的矩形脉波。
-- 另一种则是通过各种整形电路将已有的周期性变化波形变换为符合要求的矩形脉冲。（在采用整形的方法获取矩形脉冲时，是以能够找到频率和幅度都符合要求的一种已有电压信号为前提的）
-
-关于这些电路：
-
-1. 自行产生矩形脉冲波形的多谐振荡电路有很多，比如：
-   - 对称式多谐振荡电路
-   - 非对称式多谐振荡电路
-   - 环形振荡电路
-   - 用施密特触发电路够成功的多谐振荡电路
-2. 整形电路：
-   - 施密特触发电路
-   - 单稳态电路
-
-## CPU与时钟
-
-
-
-# CPU中主要寄存器
-
-在CPU中至少要有六类寄存器：指令寄存器（IR）、程序计数器（PC）、地址寄存器（AR）、数据寄存器（DR）、累加寄存器（AC）、程序状态字寄存器（PSW）。这些寄存器用来暂存一个计算机字，其数目可以根据需要进行扩充。
-
-1. 数据寄存器
-数据寄存器（Data Register，DR）又称数据缓冲寄存器，其主要功能是作为CPU和主存、外设之间信息传输的中转站，用以弥补CPU和主存、外设之间操作速度上的差异。
-
-数据寄存器用来暂时存放由主存储器读出的一条指令或一个数据字；反之，当向主存存入一条指令或一个数据字时，也将它们暂时存放在数据寄存器中。
-
-数据寄存器的作用是 ：
-
-（1）作为CPU和主存、外围设备之间信息传送的中转站；
-
-（2）弥补CPU和主存、外围设备之间在操作速度上的差异；
-
-（3）在单累加器结构的运算器中，数据寄存器还可兼作操作数寄存器。
-
-2. 指令寄存器
-指令寄存器（Instruction Register，IR）用来保存当前正在执行的一条指令。
-
-当执行一条指令时，首先把该指令从主存读取到数据寄存器中，然后再传送至指令寄存器。
-
-指令包括操作码和地址码两个字段，为了执行指令，必须对操作码进行测试，识别出所要求的操作，指令译码器（Instruction Decoder，ID）就是完成这项工作的。指令译码器对指令寄存器的操作码部分进行译码，以产生指令所要求操作的控制电位，并将其送到微操作控制线路上，在时序部件定时信号的作用下，产生具体的操作控制信号。
-
-指令寄存器中操作码字段的输出就是指令译码器的输入。操作码一经译码，即可向操作控制器发出具体操作的特定信号。
-
-3. 程序计数器
-程序计数器（Program Counter，PC）用来指出下一条指令在主存储器中的地址。
-
-在程序执行之前，首先必须将程序的首地址，即程序第一条指令所在主存单元的地址送入PC，因此PC的内容即是从主存提取的第一条指令的地址。
-
-当执行指令时，CPU能自动递增PC的内容，使其始终保存将要执行的下一条指令的主存地址，为取下一条指令做好准备。若为单字长指令，则(PC)+1àPC，若为双字长指令，则(PC)+2àPC，以此类推。
-
-但是，当遇到转移指令时，下一条指令的地址将由转移指令的地址码字段来指定，而不是像通常的那样通过顺序递增PC的内容来取得。
-
-因此，程序计数器的结构应当是具有寄存信息和计数两种功能的结构。
-
-4. 地址寄存器
-地址寄存器（Address Register，AR）用来保存CPU当前所访问的主存单元的地址。
-
-由于在主存和CPU之间存在操作速度上的差异，所以必须使用地址寄存器来暂时保存主存的地址信息，直到主存的存取操作完成为止。
-
-当CPU和主存进行信息交换，即CPU向主存存入数据/指令或者从主存读出数据/指令时，都要使用地址寄存器和数据寄存器。
-
-如果我们把外围设备与主存单元进行统一编址，那么，当CPU和外围设备交换信息时，我们同样要使用地址寄存器和数据寄存器。
-
-5. 累加寄存器
-累加寄存器通常简称累加器（Accumulator，AC），是一个通用寄存器。
-
-累加器的功能是：当运算器的算术逻辑单元ALU执行算术或逻辑运算时，为ALU提供一个工作区，可以为ALU暂时保存一个操作数或运算结果。
-
-显然，运算器中至少要有一个累加寄存器。
-
-6. 程序状态字寄存器
-程序状态字（Program Status Word，PSW）用来表征当前运算的状态及程序的工作方式。
-
-程序状态字寄存器用来保存由算术/逻辑指令运行或测试的结果所建立起来的各种条件码内容，如运算结果进/借位标志（C）、运算结果溢出标志（O）、运算结果为零标志（Z）、运算结果为负标志（N）、运算结果符号标志（S）等，这些标志位通常用1位触发器来保存。
-
-除此之外，程序状态字寄存器还用来保存中断和系统工作状态等信息，以便CPU和系统及时了解机器运行状态和程序运行状态。
-
-**因此，程序状态字寄存器是一个保存各种状态条件标志的寄存器。**
-
-作者：DemonHunter211 
-来源：CSDN 
-原文：https://blog.csdn.net/kwame211/article/details/77773621?utm_source=copy 
-版权声明：本文为博主原创文章，转载请附上博文链接！
-————————————————
-版权声明：本文为CSDN博主「魏波.」的原创文章，遵循CC 4.0 BY-SA版权协议，转载请附上原文出处链接及本声明。
-原文链接：https://blog.csdn.net/weibo1230123/article/details/83106141
-
-# STM32时钟
-
-## 内部时钟
-
-
-
-## 外部时钟
-
-
-
-## RCC
-
-
-
-
-
 # STM32
 
 教程：江科大自协化。
@@ -1069,68 +921,6 @@ PWM频率为`时钟周期 / (PSC+1) / (ARR+1)`。内部时钟周期为72MHz。
 
 高级定时器的输出比较电路：（了解一下，P15——14min）
 
-
-
-### 输出PWM波形
-
-![](img/10.PWM结构.png)
-
-使用定时器输出比较功能输出PWM波形的步骤：
-
-1. 第一步：RCC开启时钟，把要使用的TIM外设、GPIO外设的时钟打开，把输出PWM波形的GPIO口设置为复用推挽输出。
-2. 第二步：时钟源选择。
-3. 第三步：配置时基单元。
-4. 第四步：配置输出比较单元，包括CCR的值、输出比较模式、极性选择、输出使能。
-5. 第五步：启动计数器。
-
-```c
-void PWM_Init(void)
-{
-    // 第一步
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2,ENABLE);
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA,ENABLE);
-	GPIO_InitTypeDef GPIO_InitStructure;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP; // 复用推挽输出
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_Init(GPIOA,&GPIO_InitStructure);
-	// 第二步
-	TIM_InternalClockConfig(TIM2);
-	// 第三步
-	TIM_TimeBaseInitTypeDef TIM_TimeBaseInitStructure;
-	TIM_TimeBaseInitStructure.TIM_ClockDivision = TIM_CKD_DIV1;
-	TIM_TimeBaseInitStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseInitStructure.TIM_Period = 100 - 1;   // ARR
-	TIM_TimeBaseInitStructure.TIM_Prescaler = 720 - 1; // PSC
-	TIM_TimeBaseInitStructure.TIM_RepetitionCounter = 0;
-	TIM_TimeBaseInit(TIM2, &TIM_TimeBaseInitStructure);
-	// 第四步
-	TIM_OCInitTypeDef TIM_OCInitStructure;
-	TIM_OCStructInit(&TIM_OCInitStructure);
-	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
-	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
-	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
-	TIM_OCInitStructure.TIM_Pulse = 0;  // CCR
-	TIM_OC1Init(TIM2, &TIM_OCInitStructure);
-	// 第五步
-	TIM_Cmd(TIM2,ENABLE);	
-}
-```
-
-关于引脚重映射的使用（引脚定义表——TIM2_CH1可以从PA0挪到PA15的引脚上，通过AFIO实现引脚重映射）：
-
-```c
-// 1.打开AFIO时钟
-RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO,ENABLE);
-// 2.使用AFIO重映射外设复用的引脚
-GPIO_PinRemapConfig(GPIO_PartialRemap1_TIM2,ENABLE);
-// 3.如果重映射的引脚正好也是调试端口，解除调试端口
-// 可能会关闭了调试通道，会导致ST-Link使用不来了，谨慎使用解除调试端口
-GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable,ENABLE);
-```
-
-
-
 ### 函数原型说明
 
 ```c
@@ -1207,6 +997,68 @@ void TIM_CCxNCmd(TIM_TypeDef* TIMx, uint16_t TIM_Channel, uint16_t TIM_CCxN);
 void TIM_SelectOCxM(TIM_TypeDef* TIMx, uint16_t TIM_Channel, uint16_t TIM_OCMode);
 ```
 
+
+
+### 输出PWM波形
+
+![](img/10.PWM结构.png)
+
+使用定时器输出比较功能输出PWM波形的步骤：
+
+1. 第一步：RCC开启时钟，把要使用的TIM外设、GPIO外设的时钟打开，把输出PWM波形的GPIO口设置为复用推挽输出。
+2. 第二步：时钟源选择。
+3. 第三步：配置时基单元。
+4. 第四步：配置输出比较单元，包括CCR的值、输出比较模式、极性选择、输出使能。
+5. 第五步：启动计数器。
+
+```c
+void PWM_Init(void)
+{
+    // 第一步
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2,ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA,ENABLE);
+	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP; // 复用推挽输出
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA,&GPIO_InitStructure);
+	// 第二步
+	TIM_InternalClockConfig(TIM2);
+	// 第三步
+	TIM_TimeBaseInitTypeDef TIM_TimeBaseInitStructure;
+	TIM_TimeBaseInitStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+	TIM_TimeBaseInitStructure.TIM_CounterMode = TIM_CounterMode_Up;
+	TIM_TimeBaseInitStructure.TIM_Period = 100 - 1;   // ARR
+	TIM_TimeBaseInitStructure.TIM_Prescaler = 720 - 1; // PSC
+	TIM_TimeBaseInitStructure.TIM_RepetitionCounter = 0;
+	TIM_TimeBaseInit(TIM2, &TIM_TimeBaseInitStructure);
+	// 第四步
+	TIM_OCInitTypeDef TIM_OCInitStructure;
+	TIM_OCStructInit(&TIM_OCInitStructure);
+	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
+	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
+	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
+	TIM_OCInitStructure.TIM_Pulse = 0;  // CCR
+	TIM_OC1Init(TIM2, &TIM_OCInitStructure);
+	// 第五步
+	TIM_Cmd(TIM2,ENABLE);	
+}
+```
+
+关于引脚重映射的使用（引脚定义表——TIM2_CH1可以从PA0挪到PA15的引脚上，通过AFIO实现引脚重映射）：
+
+```c
+// 1.打开AFIO时钟
+RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO,ENABLE);
+// 2.使用AFIO重映射外设复用的引脚
+GPIO_PinRemapConfig(GPIO_PartialRemap1_TIM2,ENABLE);
+// 3.如果重映射的引脚正好也是调试端口，解除调试端口
+// 可能会关闭了调试通道，会导致ST-Link使用不来了，谨慎使用解除调试端口
+GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable,ENABLE);
+```
+
+
+
 ## 输入捕获功能
 
 输入捕获模式下，当通道输入引脚出现指定电平跳变时（上升沿或下降沿），当前CNT的值将被锁存到CCR中（把当前CNT的值读出来写入到CCR中），**可用于测量PWM波形的频率、占空比、脉冲间隔、电平持续时间等参数**。
@@ -1270,6 +1122,52 @@ void TIM_SelectOCxM(TIM_TypeDef* TIMx, uint16_t TIM_Channel, uint16_t TIM_OCMode
 
 PWMI模式（PWM输入模式），使用两个通道同时捕获一个引脚，这样就可以同时测量周期和占空比。TI1FP1通道设置上升沿触发，TI1FP2通道设置下降沿触发，这样CCR1的计数值就是一整个周期的计数值，CCR2就是高电平的计数值，那么占空比 就为`CCR2 / CCR1`。
 
+
+
+### 函数原型说明
+
+```c
+// 配置捕获单元，只配置一个捕获通道
+void TIM_ICInit(TIM_TypeDef* TIMx, TIM_ICInitTypeDef* TIM_ICInitStruct);
+// 初始化捕获单元，可以快速配置两个捕获通道
+void TIM_PWMIConfig(TIM_TypeDef* TIMx, TIM_ICInitTypeDef* TIM_ICInitStruct);
+// 结构体初始化赋默认值 
+void TIM_ICStructInit(TIM_ICInitTypeDef* TIM_ICInitStruct);
+
+```
+
+主模式、从模式、触发模式：
+
+```c
+// 选择输入触发源TRGI，从模式触发源选择 
+void TIM_SelectInputTrigger(TIM_TypeDef* TIMx, uint16_t TIM_InputTriggerSource);
+// 选择输出触发源TRGO，主模式输出的触发源
+void TIM_SelectOutputTrigger(TIM_TypeDef* TIMx, uint16_t TIM_TRGOSource);
+// 选择从模式
+void TIM_SelectSlaveMode(TIM_TypeDef* TIMx, uint16_t TIM_SlaveMode);
+```
+
+单独配置通道1、2、3、4的分频器：
+
+```c
+void TIM_SetIC1Prescaler(TIM_TypeDef* TIMx, uint16_t TIM_ICPSC);
+void TIM_SetIC2Prescaler(TIM_TypeDef* TIMx, uint16_t TIM_ICPSC);
+void TIM_SetIC3Prescaler(TIM_TypeDef* TIMx, uint16_t TIM_ICPSC);
+void TIM_SetIC4Prescaler(TIM_TypeDef* TIMx, uint16_t TIM_ICPSC);
+void TIM_SetClockDivision(TIM_TypeDef* TIMx, uint16_t TIM_CKD);
+```
+
+分别读取定时器的四个通道的CCR：
+
+```c
+uint16_t TIM_GetCapture1(TIM_TypeDef* TIMx);
+uint16_t TIM_GetCapture2(TIM_TypeDef* TIMx);
+uint16_t TIM_GetCapture3(TIM_TypeDef* TIMx);
+uint16_t TIM_GetCapture4(TIM_TypeDef* TIMx);
+```
+
+
+
 ### 输入捕获—使用
 
 1. 第一步：把GPIO、TIM的时钟打开。
@@ -1320,52 +1218,6 @@ void IC_Init(void)
 ```
 
 示例——使用输入捕获功能测频率、测占空比：使用TIM_PWMIConfig。
-
-
-
-
-
-### 函数原型说明
-
-```c
-// 配置捕获单元，只配置一个捕获通道
-void TIM_ICInit(TIM_TypeDef* TIMx, TIM_ICInitTypeDef* TIM_ICInitStruct);
-// 初始化捕获单元，可以快速配置两个捕获通道
-void TIM_PWMIConfig(TIM_TypeDef* TIMx, TIM_ICInitTypeDef* TIM_ICInitStruct);
-// 结构体初始化赋默认值 
-void TIM_ICStructInit(TIM_ICInitTypeDef* TIM_ICInitStruct);
-
-```
-
-主模式、从模式、触发模式：
-
-```c
-// 选择输入触发源TRGI，从模式触发源选择 
-void TIM_SelectInputTrigger(TIM_TypeDef* TIMx, uint16_t TIM_InputTriggerSource);
-// 选择输出触发源TRGO，主模式输出的触发源
-void TIM_SelectOutputTrigger(TIM_TypeDef* TIMx, uint16_t TIM_TRGOSource);
-// 选择从模式
-void TIM_SelectSlaveMode(TIM_TypeDef* TIMx, uint16_t TIM_SlaveMode);
-```
-
-单独配置通道1、2、3、4的分频器：
-
-```c
-void TIM_SetIC1Prescaler(TIM_TypeDef* TIMx, uint16_t TIM_ICPSC);
-void TIM_SetIC2Prescaler(TIM_TypeDef* TIMx, uint16_t TIM_ICPSC);
-void TIM_SetIC3Prescaler(TIM_TypeDef* TIMx, uint16_t TIM_ICPSC);
-void TIM_SetIC4Prescaler(TIM_TypeDef* TIMx, uint16_t TIM_ICPSC);
-void TIM_SetClockDivision(TIM_TypeDef* TIMx, uint16_t TIM_CKD);
-```
-
-分别读取定时器的四个通道的CCR：
-
-```c
-uint16_t TIM_GetCapture1(TIM_TypeDef* TIMx);
-uint16_t TIM_GetCapture2(TIM_TypeDef* TIMx);
-uint16_t TIM_GetCapture3(TIM_TypeDef* TIMx);
-uint16_t TIM_GetCapture4(TIM_TypeDef* TIMx);
-```
 
 
 
@@ -3861,6 +3713,152 @@ TB6612是一款双路H桥型的直流电机驱动芯片，可以驱动两个直�
 **DMA部分：**1、DMA转换数据；2、使用DMA转换ADC多通道转换后的数据。
 
 **USART部分：**1、数据发送，功能函数封装——发送字符串、发送数组等；2、数据接收；3、HEX数据包的接收；4、HEX数据包的发送。5、文本数据包的接收；6、文本数据包的发送。
+
+# 理解时钟
+
+## 脉冲信号
+
+**脉冲信号：**相对于连续信号在整个信号周期内短时间发生的信号，大部分信号周期内没有信号。就象人的脉搏一样。现在一般指数字信号，它已经是一个周期内有一半时间（甚至更长时间）有信号。计算机内的信号就是脉冲信号，又叫数字信号。
+
+- 同步脉冲信号：为确保接收和发送扫描能同步的一种制约信号。
+- 复合同步脉冲信号：为了使收、发两端扫描完全同步，发送端要给接收端提供同步脉冲信号。它由行同步脉冲和场同步脉冲组合而成的。
+
+**脉冲电路：**脉冲电路是专门用来产生电脉冲和对电脉冲进行放大、变换和整形的电路。
+
+**脉冲形状：**利用脉冲整形的程序可以产生不同的脉冲形状，根据应用的不同，最佳的脉冲形状也随之不同。
+
+- 方波
+  方波脉冲包括方波、Boxcar函数及矩形函数等。在数字信号中，由低准位变到高准位的转态称为上升缘，而由高准位变到低准位的转态称为下降缘。若数字系统中会侦测上升缘或下降缘，或在此情形下才动作，称为 `边缘触发`。数字时序图就是由许多方波组成的例子。
+- Nyquist脉冲
+  Nyquist脉冲是符合Nyquist码间干扰标准的脉冲，在资料传输有其重要性
+- 高斯脉冲
+  高斯脉冲是成形为高斯函数的脉冲，是由高斯滤波器产生，它是在没有过冲及最小群延时条件下，暂态最快的脉冲
+
+**脉冲信号的应用——时钟信号：**时钟信号是由电路产生的具有周期性的脉冲信号，产生这种信号的电路一般有RC震荡电路、晶体震荡电路、石英/陶瓷谐振电路等。（什么是时钟（时钟信号）呢？简单的来讲就是由电路产生的具有周期性的脉冲信号，它不一定就是方波，更不一定就是50%占空比的方波，**系统中时钟信号被用来为系统中多个同步执行的电路之间、为不同系统之间的数据传输提供参考基准。**[电子产品的心脏-时钟 - 时钟信号的关键指标 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/95729800)）
+
+## 时钟信号
+
+**时钟信号：**又称时间脉冲信号(简称时脉?)，计算机科学及相关领域用语，此信号在 `同步电路`当中，扮演 `计时器`的角色，并组成电路的电子组件。**只有当同步信号到达时，相关的触发器才按输入信号改变输出状态，因此使得相关的电子组件得以同步运作。**
+
+> 在数字电路(计算机)中分别以高电平和低电平表示1状态和0状态。此时电信号的波形是非正弦波，为`脉冲信号，又叫数字信号`
+>
+> 说法1：在时序逻辑电路中，为了控制各触发器同步协调一致的工作，通常需要一个稳定精确的时钟脉冲信号
+> 说法2：在同步时序电路中，`作为时钟信号的矩形脉冲`控制和协调着整个系统的工作
+
+辅助理解时钟信号于CPU的作用——引用知乎上的一个解释：
+
+-  CPU里可以粗略的认为是很多很多很多小电容（充满电了算1，没充电算0），每次计算就是这些小电容翻来覆去的充电放电。
+   很多小电容组成一个个基本的模块，比如输入到输出。输入到输出是有延迟的，因为前面说了，电容要充电放电，这个需要时间。
+   基本小模块各种连接，组成复杂的功能，也就是前面小模块的输出会被后面模块当成输入。
+-  模块连接行成功能，那么后面的模块要如何知道前面的模块到底是已经完成充电/放电了呢，还是正在充电放电呢？另一方面，路径越长从最开始输入到最终的输出的时间就越长，也就是路径长度不同延迟就不同，所以你很难保证每个针脚上的数据严格的同时到达。
+-  所以就引入了时钟机制：用一个统一的时钟脉冲来同步各个小模块。脉冲没来，小模块抓紧时间充电放电，脉冲来了，模块一起动。可以简单的认为时钟脉冲来一下，CPU就动一下。下个时钟脉冲一直不来，CPU就一直不动。
+   (**保证运算时，数据的读-写-计算必须要严格的按照顺序依次进行**)
+
+**时钟边沿触发：**时钟边沿触发信号意味着所有的状态变化都发生在时钟边沿到来时刻。**只有当同步信号到达时，相关的触发器才会按输入信号改变输出状态，使得相关的电子组件得以同步运作。**控制逻辑单元状态量变化的是时钟信号的上升沿还是下降沿，取决于具体的逻辑设计。**时钟不是作用在ALU（逻辑控制单元）上而是寄存器上**，这种特殊的寄存器叫：时钟寄存器，只有在时钟信号的上升沿（比如说5V高位）才能往里写入，其他时候，输入只能在外面等着。
+
+**时钟信号的产生：**
+
+- 一种是利用各种形式的多谐振荡电路直接产生所需要的矩形脉波。
+- 另一种则是通过各种整形电路将已有的周期性变化波形变换为符合要求的矩形脉冲。（在采用整形的方法获取矩形脉冲时，是以能够找到频率和幅度都符合要求的一种已有电压信号为前提的）
+
+关于这些电路：
+
+1. 自行产生矩形脉冲波形的多谐振荡电路有很多，比如：
+   - 对称式多谐振荡电路
+   - 非对称式多谐振荡电路
+   - 环形振荡电路
+   - 用施密特触发电路够成功的多谐振荡电路
+2. 整形电路：
+   - 施密特触发电路
+   - 单稳态电路
+
+## CPU与时钟
+
+
+
+# CPU中主要寄存器
+
+在CPU中至少要有六类寄存器：指令寄存器（IR）、程序计数器（PC）、地址寄存器（AR）、数据寄存器（DR）、累加寄存器（AC）、程序状态字寄存器（PSW）。这些寄存器用来暂存一个计算机字，其数目可以根据需要进行扩充。
+
+1. 数据寄存器
+   数据寄存器（Data Register，DR）又称数据缓冲寄存器，其主要功能是作为CPU和主存、外设之间信息传输的中转站，用以弥补CPU和主存、外设之间操作速度上的差异。
+
+数据寄存器用来暂时存放由主存储器读出的一条指令或一个数据字；反之，当向主存存入一条指令或一个数据字时，也将它们暂时存放在数据寄存器中。
+
+数据寄存器的作用是 ：
+
+（1）作为CPU和主存、外围设备之间信息传送的中转站；
+
+（2）弥补CPU和主存、外围设备之间在操作速度上的差异；
+
+（3）在单累加器结构的运算器中，数据寄存器还可兼作操作数寄存器。
+
+2. 指令寄存器
+   指令寄存器（Instruction Register，IR）用来保存当前正在执行的一条指令。
+
+当执行一条指令时，首先把该指令从主存读取到数据寄存器中，然后再传送至指令寄存器。
+
+指令包括操作码和地址码两个字段，为了执行指令，必须对操作码进行测试，识别出所要求的操作，指令译码器（Instruction Decoder，ID）就是完成这项工作的。指令译码器对指令寄存器的操作码部分进行译码，以产生指令所要求操作的控制电位，并将其送到微操作控制线路上，在时序部件定时信号的作用下，产生具体的操作控制信号。
+
+指令寄存器中操作码字段的输出就是指令译码器的输入。操作码一经译码，即可向操作控制器发出具体操作的特定信号。
+
+3. 程序计数器
+   程序计数器（Program Counter，PC）用来指出下一条指令在主存储器中的地址。
+
+在程序执行之前，首先必须将程序的首地址，即程序第一条指令所在主存单元的地址送入PC，因此PC的内容即是从主存提取的第一条指令的地址。
+
+当执行指令时，CPU能自动递增PC的内容，使其始终保存将要执行的下一条指令的主存地址，为取下一条指令做好准备。若为单字长指令，则(PC)+1àPC，若为双字长指令，则(PC)+2àPC，以此类推。
+
+但是，当遇到转移指令时，下一条指令的地址将由转移指令的地址码字段来指定，而不是像通常的那样通过顺序递增PC的内容来取得。
+
+因此，程序计数器的结构应当是具有寄存信息和计数两种功能的结构。
+
+4. 地址寄存器
+   地址寄存器（Address Register，AR）用来保存CPU当前所访问的主存单元的地址。
+
+由于在主存和CPU之间存在操作速度上的差异，所以必须使用地址寄存器来暂时保存主存的地址信息，直到主存的存取操作完成为止。
+
+当CPU和主存进行信息交换，即CPU向主存存入数据/指令或者从主存读出数据/指令时，都要使用地址寄存器和数据寄存器。
+
+如果我们把外围设备与主存单元进行统一编址，那么，当CPU和外围设备交换信息时，我们同样要使用地址寄存器和数据寄存器。
+
+5. 累加寄存器
+   累加寄存器通常简称累加器（Accumulator，AC），是一个通用寄存器。
+
+累加器的功能是：当运算器的算术逻辑单元ALU执行算术或逻辑运算时，为ALU提供一个工作区，可以为ALU暂时保存一个操作数或运算结果。
+
+显然，运算器中至少要有一个累加寄存器。
+
+6. 程序状态字寄存器
+   程序状态字（Program Status Word，PSW）用来表征当前运算的状态及程序的工作方式。
+
+程序状态字寄存器用来保存由算术/逻辑指令运行或测试的结果所建立起来的各种条件码内容，如运算结果进/借位标志（C）、运算结果溢出标志（O）、运算结果为零标志（Z）、运算结果为负标志（N）、运算结果符号标志（S）等，这些标志位通常用1位触发器来保存。
+
+除此之外，程序状态字寄存器还用来保存中断和系统工作状态等信息，以便CPU和系统及时了解机器运行状态和程序运行状态。
+
+**因此，程序状态字寄存器是一个保存各种状态条件标志的寄存器。**
+
+作者：DemonHunter211 
+来源：CSDN 
+原文：https://blog.csdn.net/kwame211/article/details/77773621?utm_source=copy 
+版权声明：本文为博主原创文章，转载请附上博文链接！
+————————————————
+版权声明：本文为CSDN博主「魏波.」的原创文章，遵循CC 4.0 BY-SA版权协议，转载请附上原文出处链接及本声明。
+原文链接：https://blog.csdn.net/weibo1230123/article/details/83106141
+
+# STM32时钟
+
+## 内部时钟
+
+
+
+## 外部时钟
+
+
+
+## RCC
+
+
 
 
 
