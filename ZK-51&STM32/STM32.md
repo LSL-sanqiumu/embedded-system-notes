@@ -797,7 +797,7 @@ void TIM_ClearITPendingBit(TIM_TypeDef* TIMx, uint16_t TIM_IT);
 ### 1、外部中断配置
 
 1. 第一步：RCC开启定时器时钟，打开后定时器的基准时钟和整个外设的工作时钟都会同时打开。
-2. 第二步：选择时钟源。
+2. 第二步：选择时钟源。（打开TIM的时钟后默认使用72MHz的时钟，打开后可以自行设置使用哪些时钟）
 3. 第三步：配置时基单元，包括预分频器、自动重装器、计数模式等。
 4. 第四步：配置输出中断控制，允许更新中断输出到NVIC。
 5. 第五步：在NVIC中打开定时器中断的通道，并分配一个优先级。
@@ -1282,9 +1282,9 @@ uint32_t IC_GetDuty(void)
 
 
 
-## TIM编码器接口
+## 编码器接口
 
-Encoder Interface —— 编码器接口：
+STM32的Encoder Interface —— 编码器接口：
 
 - 编码器接口可接收增量（正交）编码器的信号，**根据编码器旋转产生的正交信号脉冲，自动控制CNT自增或自减**，从而指示编码器的**位置、旋转方向和旋转速度**。
 - **每个高级定时器和通用定时器都拥有1个**编码器接口。（如果一个定时器配置成了编码器，基本上干不了其它活了）
@@ -1374,17 +1374,17 @@ void TIM_EncoderInterfaceConfig(TIM_TypeDef* TIMx, uint16_t TIM_EncoderMode,
 
 # ADC
 
-ADC（Analog-Digital Converter）模拟-数字转换器：
+ADC（Analog-Digital Converter）模拟—数字转换器：
 
-- ADC可以将引脚上连续变化的模拟电压转换为内存中存储的数字变量，建立模拟电路到数字电路的桥梁。（ADC，读取电压，将电压转换为数据并存储到寄存器里）
-- 工作模式：12位逐次逼近型ADC，1us转换时间。（分辨率：多少位，12位——`2^12-1`=4095，转换时间（转换频率）——转换开始到产生结果需要1微秒）
+- ADC可以将引脚上**连续变化的模拟电压转换为内存中存储的数字变量**，建立模拟电路到数字电路的桥梁。（ADC，读取电压，将电压转换为数据并存储到寄存器里）
+- 工作模式：12位逐次逼近型ADC，1us转换时间。（分辨率：多少位，12位——`2^12-1`=4095；转换时间（转换频率）——转换开始到产生结果需要1微秒）
 - 输入电压范围：0~3.3V，转换结果范围：0~4095。
 - ADC有18个输入通道，可测量16个外部和2个内部信号源（内部温度传感器和内部参考电压）。
 - STM32 ADC的增强功能：规则组和注入组两个转换单元。（可以列一个组，一次性启动一个组来连续转换多个值。一个是常规使用的规则组，一个是用于突发事件的注入组）
 - 模拟看门狗自动监测输入电压范围。
-- STM32F103C8T6 ADC资源：ADC1、ADC2，10个外部输入通道。
+- **STM32F103C8T6 ADC资源：ADC1、ADC2，10个外部输入通道。**
 
-## ADC原理
+## ADC原理介绍
 
 逐次逼近型ADC内部结构：（ADC0809芯片）
 
@@ -1396,25 +1396,33 @@ ADC（Analog-Digital Converter）模拟-数字转换器：
 
 3、电压比较器：输入的电压和DAC数模转换器输出的电压进行大小比较判断，如果DAC输出的电压偏大那就调小DAC输出的电压，直到两个比较电压相等。（DAC电压——一般二分法）
 
-STM32  ADC框图：
+STM32  ADC框图：（注意：STM32F103C8只有两个ADC，只有10个外部输入通道（PA0~PA9））
 
 ![](img/13.ADC.png)
 
-STM32  ADC的主电路框图：
+STM32  ADC的主电路框图：（注意：STM32F103C8只有两个ADC，只有10个外部输入通道（PA0~PA9））
 
 ![](img/13.ADC的主电路.png)
 
-STM32  ADC的外围电路 —— 触发转换部分框图：（触发转换）
+注入通道与规则通道：选择注入通道的模式转换后的数据会存储到注入通道数据寄存器，最多每次可同时存储4个通道的转换数据而不会导致覆盖；规则通道的数据寄存器只能存储一个数据，如果多通道转换后最后存入的只会是一个通道的数据，其它的通道数据会被覆盖掉。
+
+STM32  ADC的外围电路 —— 触发转换部分电路的框图：（触发模拟量到数字量的转换）
 
 ![](img/13.ADC外围触发.png)
 
 ## ADC基本结构
 
+ADC基本工作流程：
+
 ![](img/13.ADC基本结构.png)
+
+STM32 ADC的输入通道供参考：（注意：STM32F103C8只有两个ADC，只有10个外部输入通道（PA0~PA9））
 
 ![](img/13.ADC通道.png)
 
-**ADC转换模式：**
+ADC转换：将外部输入通道输入的模拟量转换为数字量。
+
+**ADC转换模式：**（单次、连续：只触发一次转换还是不停转换；扫描、非扫描：只对一个通道进行转换还是对多个通道进行转换）
 
 1. 单次转换，非扫描模式：只对一个通道进行转换，转换结束后置标志位，如果再想转换需要再次触发。
 2. 连续转换，非扫描模式：只对一个通道进行转换，转换结束后置标志位，转发一次转换后会持续转换下去，不需要再次触发。
@@ -1422,7 +1430,7 @@ STM32  ADC的外围电路 —— 触发转换部分框图：（触发转换）
 4. 连续转换，扫描模式：不需要再次触发，第一次触发后后续会不断地进行转换。
 5. 间断模式：扫描时每隔几个通道转换就暂停一次，需要再次触发才继续。
 
-**ADC触发控制：**（触发源的选择）
+**ADC触发控制：**（触发源的选择，选择什么时候触发转换）
 
 ![](img/13.ADC触发控制.png)
 
@@ -1430,7 +1438,7 @@ ADC转换时间：
 
 ![](img/13.ADC转换时间.png)
 
-ADC 校准：
+**ADC 校准：**
 
 - ADC有一个内置自校准模式。校准可大幅减小因内部电容器组的变化而造成的准精度误差。校准期间，在每个电容器上都会计算出一个误差修正码(数字值)，这个码用于消除在随后的转换中每个电容器上产生的误差。
 - 建议在每次上电后执行一次校准。
@@ -1445,60 +1453,6 @@ ADC 校准：
 ![](img/13.ADC模式3.png)
 
 ![](img/13.ADC模式4.png)
-
-
-
-## ADC的使用
-
-1. 第一步：开启ADC和GPIO的时钟，设置ADC的分频器。
-2. 第二步：配置GPIO，配置成模拟输出模式。
-3. 第三步：配置多路开关，将GPIO口接入到规则组通道列表里。
-4. 第四步：配置ADC转换器。
-5. 第五步：开启ADC。
-6. 第六步：ADC自校准。
-
-```c
-void AD_Init(void)
-{
-    // 第一步
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1,ENABLE);
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA,ENABLE);
-	RCC_ADCCLKConfig(RCC_PCLK2_Div6);
-	// 第二步
-	GPIO_InitTypeDef GPIO_InitStructure;
- 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AIN;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
- 	GPIO_Init(GPIOA, &GPIO_InitStructure);
-	// 第三步
-	ADC_RegularChannelConfig(ADC1,ADC_Channel_0,1,ADC_SampleTime_55Cycles5);
-	// 第四步
-	ADC_InitTypeDef ADC_InitStructure;
-	ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
-	ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None;
-	ADC_InitStructure.ADC_Mode = ADC_Mode_Independent;
-	ADC_InitStructure.ADC_ContinuousConvMode = DISABLE;
-	ADC_InitStructure.ADC_NbrOfChannel = 1;
-	ADC_InitStructure.ADC_ScanConvMode = DISABLE;
-	ADC_Init(ADC1,&ADC_InitStructure);
-    // 第五步
-	ADC_Cmd(ADC1,ENABLE);
-	// 第六步：校准
-	ADC_ResetCalibration(ADC1);
-	while(ADC_GetResetCalibrationStatus(ADC1) == SET);
-	ADC_StartCalibration(ADC1);
-	while(ADC_GetCalibrationStatus(ADC1));
-}
-uint16_t AD_GetValue(void)
-{
-    // 读
-	ADC_SoftwareStartConvCmd(ADC1,ENABLE);
-	while(ADC_GetFlagStatus(ADC1,ADC_FLAG_EOC) == RESET);
-	return ADC_GetConversionValue(ADC1);
-}
-```
-
-
 
 
 
@@ -1591,6 +1545,66 @@ void ADC_ClearFlag(ADC_TypeDef* ADCx, uint8_t ADC_FLAG);
 ITStatus ADC_GetITStatus(ADC_TypeDef* ADCx, uint16_t ADC_IT);
 void ADC_ClearITPendingBit(ADC_TypeDef* ADCx, uint16_t ADC_IT);
 ```
+
+
+
+
+
+## ADC的使用
+
+![](img/13.ADC基本结构.png)
+
+1. 第一步：RCC开启ADC和GPIO的时钟。
+2. 第二步：设置ADC的预分频器用于设置ADC使用的时钟的频率。
+3. 第三步：配置GPIO，配置成模拟输出模式。
+4. 第四步：配置多路开关，将GPIO口接入到规则组通道列表里。
+5. 第五步：配置ADC转换器。
+6. 第六步：开启ADC。
+7. 第七步：设置ADC自校准。
+
+```c
+void AD_Init(void)
+{
+    // 第一步
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1,ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA,ENABLE);
+    // 第二步：设置ADC时钟频率
+	RCC_ADCCLKConfig(RCC_PCLK2_Div6);
+	// 第三步
+	GPIO_InitTypeDef GPIO_InitStructure;
+ 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AIN;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
+ 	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	// 第四步
+	ADC_RegularChannelConfig(ADC1,ADC_Channel_0,1,ADC_SampleTime_55Cycles5);
+	// 第五步
+	ADC_InitTypeDef ADC_InitStructure;
+	ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
+	ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None;
+	ADC_InitStructure.ADC_Mode = ADC_Mode_Independent;
+	ADC_InitStructure.ADC_ContinuousConvMode = DISABLE;
+	ADC_InitStructure.ADC_NbrOfChannel = 1;
+	ADC_InitStructure.ADC_ScanConvMode = DISABLE;
+	ADC_Init(ADC1,&ADC_InitStructure);
+    // 第六步：
+	ADC_Cmd(ADC1,ENABLE);
+	// 第七步：设置自校准
+	ADC_ResetCalibration(ADC1);
+	while(ADC_GetResetCalibrationStatus(ADC1) == SET);
+	ADC_StartCalibration(ADC1);
+	while(ADC_GetCalibrationStatus(ADC1));
+}
+uint16_t AD_GetValue(void)
+{
+    // 读
+	ADC_SoftwareStartConvCmd(ADC1,ENABLE);
+	while(ADC_GetFlagStatus(ADC1,ADC_FLAG_EOC) == RESET);
+	return ADC_GetConversionValue(ADC1);
+}
+```
+
+
 
 # DMA
 
@@ -3690,7 +3704,7 @@ TIM外设中的：
 
 
 
-## 器件
+## 器件介绍
 
 ### LED
 
@@ -3784,6 +3798,10 @@ TB6612是一款双路H桥型的直流电机驱动芯片，可以驱动两个直�
 **DMA部分：**1、DMA转换数据；2、使用DMA转换ADC多通道转换后的数据。
 
 **USART部分：**1、数据发送，功能函数封装——发送字符串、发送数组等；2、数据接收；3、HEX数据包的接收；4、HEX数据包的发送。5、文本数据包的接收；6、文本数据包的发送。
+
+
+
+
 
 # 理解时钟
 
