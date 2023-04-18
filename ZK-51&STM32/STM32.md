@@ -1337,7 +1337,7 @@ void TIM_EncoderInterfaceConfig(TIM_TypeDef* TIMx, uint16_t TIM_EncoderMode,
 1. 第一步：开启GPIO和定时器的时钟。
 2. 第二步：配置GPIO的输入模式。
 3. 第三步：配置时基单元。
-4. 第四步：配置输入捕获单元，只配置输入极性和滤波器即可，只有这两个参数有用。
+4. 第四步：配置输入捕获单元，配置通道后只配置输入极性和滤波器即可，只有这两个参数有用。
 5. 第五步：配置编码器接口模式。
 6. 第六部：启动定时器。
 7. 编码器接口就是一个带方向控制的外部时钟，会托管内部时钟，因此不需要为定时器配置内部时钟。
@@ -1421,17 +1421,15 @@ STM32  ADC的外围电路 —— 触发转换部分电路的框图：（触发�
 
 ## ADC基本结构
 
-ADC基本工作流程：
+ADC基本工作流程：（ADC——模数转换：将外部输入通道输入的模拟量转换为数字量。）
 
 ![](img/13.ADC基本结构.png)
 
-STM32 ADC的输入通道供参考：（注意：STM32F103C8只有两个ADC，只有10个外部输入通道（PA0~PA9））
+ADC的输入通道：（注意：STM32F103C8只有两个ADC，只有10个外部输入通道（PA0~PA9））
 
-![](img/13.ADC通道.png)
+<img src="img/13.ADC通道.png" style="zoom: 80%;" />
 
-ADC转换：将外部输入通道输入的模拟量转换为数字量。
-
-**ADC转换模式：**（单次、连续：只触发一次转换还是不停转换；扫描、非扫描：只对一个通道进行转换还是对多个通道进行转换）
+**ADC模式：**（单次、连续：只触发一次转换还是不停转换；扫描、非扫描：只对一个通道进行转换还是对多个通道进行转换）
 
 1. 单次转换，非扫描模式：只对一个通道进行转换，转换结束后置标志位，如果再想转换需要再次触发。
 2. 连续转换，非扫描模式：只对一个通道进行转换，转换结束后置标志位，转发一次转换后会持续转换下去，不需要再次触发。
@@ -1439,7 +1437,7 @@ ADC转换：将外部输入通道输入的模拟量转换为数字量。
 4. 连续转换，扫描模式：不需要再次触发，第一次触发后后续会不断地进行转换。
 5. 间断模式：扫描时每隔几个通道转换就暂停一次，需要再次触发才继续。
 
-**ADC触发控制：**（触发源的选择，选择什么时候触发转换）
+**ADC触发源（触发控制）：**（触发源的选择，选择什么时候触发转换）
 
 ![](img/13.ADC触发控制.png)
 
@@ -1688,6 +1686,34 @@ DMA请求映射：
 转运数据宽度不一致时：（目标的数据宽度比源端的数据宽度大，那就在目标数据前面多出来的空位补0；目标的数据宽度比源端的数据宽度小，那就会把多出来的高位舍弃掉）
 
 ![](img/14.DMA数据宽度.png)
+
+
+
+## 函数原型说明
+
+> stm32f10x_dma.h
+
+```c
+// 初始化
+void DMA_DeInit(DMA_Channel_TypeDef* DMAy_Channelx);
+void DMA_Init(DMA_Channel_TypeDef* DMAy_Channelx, DMA_InitTypeDef* DMA_InitStruct);
+void DMA_StructInit(DMA_InitTypeDef* DMA_InitStruct);
+// 开启DMA
+void DMA_Cmd(DMA_Channel_TypeDef* DMAy_Channelx, FunctionalState NewState);
+// DMA中断配置
+void DMA_ITConfig(DMA_Channel_TypeDef* DMAy_Channelx, uint32_t DMA_IT, FunctionalState NewState);
+// 设置DMA的数据计数器
+void DMA_SetCurrDataCounter(DMA_Channel_TypeDef* DMAy_Channelx, uint16_t DataNumber); 
+// 获取传输计数器的值
+uint16_t DMA_GetCurrDataCounter(DMA_Channel_TypeDef* DMAy_Channelx);
+// 获取标志位，前面程序里使用，后面中断里使用
+FlagStatus DMA_GetFlagStatus(uint32_t DMAy_FLAG);
+void DMA_ClearFlag(uint32_t DMAy_FLAG);
+ITStatus DMA_GetITStatus(uint32_t DMAy_IT);
+void DMA_ClearITPendingBit(uint32_t DMAy_IT);
+```
+
+
 
 ## DMA转运例子
 
@@ -2072,34 +2098,6 @@ void AD_Init(void)
 ```
 
 
-
-
-
-
-
-## 函数原型说明
-
-> stm32f10x_dma.h
-
-```c
-// 初始化
-void DMA_DeInit(DMA_Channel_TypeDef* DMAy_Channelx);
-void DMA_Init(DMA_Channel_TypeDef* DMAy_Channelx, DMA_InitTypeDef* DMA_InitStruct);
-void DMA_StructInit(DMA_InitTypeDef* DMA_InitStruct);
-// 开启DMA
-void DMA_Cmd(DMA_Channel_TypeDef* DMAy_Channelx, FunctionalState NewState);
-// DMA中断配置
-void DMA_ITConfig(DMA_Channel_TypeDef* DMAy_Channelx, uint32_t DMA_IT, FunctionalState NewState);
-// 设置DMA的数据计数器
-void DMA_SetCurrDataCounter(DMA_Channel_TypeDef* DMAy_Channelx, uint16_t DataNumber); 
-// 获取传输计数器的值
-uint16_t DMA_GetCurrDataCounter(DMA_Channel_TypeDef* DMAy_Channelx);
-// 获取标志位，前面程序里使用，后面中断里使用
-FlagStatus DMA_GetFlagStatus(uint32_t DMAy_FLAG);
-void DMA_ClearFlag(uint32_t DMAy_FLAG);
-ITStatus DMA_GetITStatus(uint32_t DMAy_IT);
-void DMA_ClearITPendingBit(uint32_t DMAy_IT);
-```
 
 # 通信接口
 
