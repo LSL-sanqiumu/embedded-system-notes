@@ -34,6 +34,8 @@ STM32开发方式：
 
 使用库函数新建keil工程进行STM32开发的步骤：
 
+**0、STM32固件库下载。**
+
 **1、新建keil工程，型号选择STM32F103C8。**
 
 **2、核心开发支持文件的引入：**工程必要文件引入——在工程下创建文件夹Start，并将以下目录下的文件放进去：
@@ -1405,19 +1407,33 @@ ADC（Analog-Digital Converter）模拟—数字转换器：
 
 3、电压比较器：输入的电压和DAC数模转换器输出的电压进行大小比较判断，如果DAC输出的电压偏大那就调小DAC输出的电压，直到两个比较电压相等。（DAC电压——一般二分法）
 
-STM32  ADC框图：（注意：STM32F103C8只有两个ADC，只有10个外部输入通道（PA0~PA9））
+STM32  ADC整体结构框图：（注意：STM32F103C8只有两个ADC，只有10个外部输入通道（PA0~PA7、PB0~PB1））
 
 ![](img/13.ADC.png)
 
-STM32  ADC的主电路框图：（注意：STM32F103C8只有两个ADC，只有10个外部输入通道（PA0~PA9））
+STM32  ADC的主电路框图：（注意：STM32F103C8只有两个ADC，只有10个外部输入通道（PA0~PA7、PB0~PB1））
 
 ![](img/13.ADC的主电路.png)
 
+模拟至数字转换器：执行逐次比较过程，最后的ADC转换结果将存储在数据寄存器中。
+
 注入通道与规则通道：选择注入通道的模式转换后的数据会存储到注入通道数据寄存器，最多每次可同时存储4个通道的转换数据而不会导致覆盖；规则通道的数据寄存器只能存储一个数据，如果多通道转换后最后存入的只会是一个通道的数据，其它的通道数据会被覆盖掉。
 
-STM32  ADC的外围电路 —— 触发转换部分电路的框图：（触发模拟量到数字量的转换）
+ADCCLK：驱动模拟至数字转换器内部逐次比较的时钟。（ADCCLK最大只能为14MHz；这个时钟来源于RCC，经预分频后得到，设置ADC的时钟预分频器时只能设置6分频或者8分频）
+
+模拟看门狗：里面可以存一个阈值高限和阈值低限，如果启动了模拟看门狗，并指定了看门的通道，那当该通道超过阈值范围，就会去申请一个模拟看门狗的中断。（可用于检测转换结果范围）
+
+转换完成标志：EOC——规则组；JEOC——注入组的；读取这两个标志位就可以找到是不是转换结束了；这两个标志位也可以申请中断。
+
+STM32  ADC的外围电路 —— 触发转换部分电路的框图：（触发模拟量到数字量的转换，有软件触发（手动调程序来触发）、硬件触发，下图为硬件触发源、外部中断触发源的结构框图）
 
 ![](img/13.ADC外围触发.png)
+
+定时器的主模式，可以触发ADC、DAC这些外设，触发转换。定时器触发作用：TRGO，通过硬件自动实现转换触发。
+
+外部中断触发。
+
+
 
 ## ADC基本结构
 
@@ -1425,41 +1441,75 @@ ADC基本工作流程：（ADC——模数转换：将外部输入通道输入�
 
 ![](img/13.ADC基本结构.png)
 
-ADC的输入通道：（注意：STM32F103C8只有两个ADC，只有10个外部输入通道（PA0~PA9））
+## ADC细节
+
+#### 输入通道
+
+（注意：STM32F103C8只有两个ADC，只有10个外部输入通道（PA0~PA7、PB0~PB1））
 
 <img src="img/13.ADC通道.png" style="zoom: 80%;" />
 
-**ADC模式：**（单次、连续：只触发一次转换还是不停转换；扫描、非扫描：只对一个通道进行转换还是对多个通道进行转换）
+#### 转换模式—规则组
+
+（单次、连续：只触发一次转换还是不停转换；扫描、非扫描：只对一个通道进行转换还是对多个通道进行转换）
 
 1. 单次转换，非扫描模式：只对一个通道进行转换，转换结束后置标志位，如果再想转换需要再次触发。
 2. 连续转换，非扫描模式：只对一个通道进行转换，转换结束后置标志位，转发一次转换后会持续转换下去，不需要再次触发。
 3. 单次转换，扫描模式：可以对多个通道进行转换，会对通道依次进行转换，而且每个通道转换结束后数据会放到数据寄存器，可能会覆盖前面的数据，因此需要DMA来将数据搬走，全部通道转换结束后置标志位，转换结束，再次转换需要再次触发。
 4. 连续转换，扫描模式：不需要再次触发，第一次触发后后续会不断地进行转换。
-5. 间断模式：扫描时每隔几个通道转换就暂停一次，需要再次触发才继续。
+5. 间断模式：扫描时每隔几个通道转换就暂停一次，需要再次触发才会开始下一轮转换。
 
-**ADC触发源（触发控制）：**（触发源的选择，选择什么时候触发转换）
+ADC转换模式图解：
+
+1、单次转换、非扫描模式：只对一个通道的数据进行转换，转换后标志位置1，判断标志位来确定转换结束后即可取数据；如果再次转换则需要再次触发转换，如果想对另外的一个通道进行转换，在触发前更改通道即可。
+
+![](img/13.ADC模式1.png)
+
+2、连续转换、非扫描模式：当模数转换被触发后，就会不断地对通道的值进行转换，不需要再次触发转换。好处是第一次转换触发后不需要再次进行触发，读取AD值时不用判断标志位直接读取即可。
+
+![](img/13.ADC模式2.png)
+
+3、单次转换、扫描模式：触发转换后会对多个通道依次进行转换，转换后的数据会依次存于数据寄存器，因此为防止数据被覆盖需要DMA及时将数据转运走；下一次转换还需要触发信号。全部通道都转换完才会对标志位置1。
+
+![](img/13.ADC模式3.png)
+
+4、连续转换、扫描模式：对多个通道进行依次转换，转换完标志位才置1，只需要触发一次即可不停地进行转换。
+
+![](img/13.ADC模式4.png)
+
+
+
+
+
+#### 触发源（触发控制）
+
+（触发源的选择，选择什么时候触发转换）
 
 ![](img/13.ADC触发控制.png)
 
-ADC转换时间：
+#### 数据对齐
+
+STM32F103C8T6的ADC是12位的，即转换后的结果是12位的数据，而数据寄存器是16位的，所以存在一个数据对齐问题。12位数据怎么存储在这16位数据寄存器中？如果是右对齐就是低12位存储，高四位补0；如果是左对齐就是低四位补0，高12位都用来存储这12位数据（相当于对数据左移4位）。
+
+![](img/13.ADC数据对齐.png)
+
+
+
+#### 转换时间
+
+AD转换需要花费一定时间，AD转换都是很快的，如果不需要非常高速的转换频率，可忽略转换时间。
+
+量化、编码：ADC逐次比较的过程；采样、保持：采样模拟量并保持模拟量，供后面的逐次比较。
 
 ![](img/13.ADC转换时间.png)
 
-**ADC 校准：**
+#### ADC 校准
+
+ADC 校准：
 
 - ADC有一个内置自校准模式。校准可大幅减小因内部电容器组的变化而造成的准精度误差。校准期间，在每个电容器上都会计算出一个误差修正码(数字值)，这个码用于消除在随后的转换中每个电容器上产生的误差。
 - 建议在每次上电后执行一次校准。
 - 启动校准前， ADC必须处于关电状态超过至少两个ADC时钟周期。
-
-## ADC转换模式图解
-
-![](img/13.ADC模式1.png)
-
-![](img/13.ADC模式2.png)
-
-![](img/13.ADC模式3.png)
-
-![](img/13.ADC模式4.png)
 
 
 
@@ -1468,59 +1518,78 @@ ADC转换时间：
 stm32f10x_rcc.h：
 
 ```c
-// 配置ADC的CLK的分频器
+// 配置ADCCLK的分频器，驱动ADC的模数转换器的时钟的频率不能高于14MHz
 void RCC_ADCCLKConfig(uint32_t RCC_PCLK2);
 ```
 
 stm32f10x_adc.h：
 
 ```c
-// 初始化
+// ADC初始化相关的
 void ADC_DeInit(ADC_TypeDef* ADCx);
 void ADC_Init(ADC_TypeDef* ADCx, ADC_InitTypeDef* ADC_InitStruct);
 void ADC_StructInit(ADC_InitTypeDef* ADC_InitStruct);
-// 开启
+// ADC上电
 void ADC_Cmd(ADC_TypeDef* ADCx, FunctionalState NewState);
+// 开启DMA输出信号
 void ADC_DMACmd(ADC_TypeDef* ADCx, FunctionalState NewState);
-// 中断配置
+// ADC中断配置
 void ADC_ITConfig(ADC_TypeDef* ADCx, uint16_t ADC_IT, FunctionalState NewState);
 ```
 
+ADC初始化结构体参数说明 —— ADC_InitTypeDef结构体：
+
+- ADC_Mode：ADC的工作模式，选择独立模式还是双ADC模式，值除ADC_Mode_Independent外的都是双ADC模式的。
+- ADC_ScanConvMode：扫描转换模式选择，选择扫描模式还是非扫描模式。
+- ADC_ContinuousConvMode：连续模式选择，选择连续转换还是单次转换。
+- ADC_ExternalTrigConv：定义用于触发规则组转换的外部触发源，参数值对应触发转换部分电路的框图中的触发源，ADC_ExternalTrigConv_None —— 不启用外部触发。
+- ADC_DataAlign：数据对齐。
+- ADC_NbrOfChannel：通道数目，指定在扫描模式下总共会用到多少个通道。
+
 ```c
-// 校准
-void ADC_ResetCalibration(ADC_TypeDef* ADCx);
-FlagStatus ADC_GetResetCalibrationStatus(ADC_TypeDef* ADCx);
-void ADC_StartCalibration(ADC_TypeDef* ADCx);
-FlagStatus ADC_GetCalibrationStatus(ADC_TypeDef* ADCx);
+// ADC规则组通道配置，给序列的每个位置填写指定通道
+// 参数2—指定通道，参数3—为通道配置序列(规则组序列器的序号，规则组有16个序列（接入到规则组的通道）)
+// 参数3—指定通道采样时间，需要更快的转换就选小的参数，需要更稳定的转换就选大的参数
+// 可多次调用该函数来配置另外的通道
+void ADC_RegularChannelConfig(ADC_TypeDef* ADCx, uint8_t ADC_Channel, uint8_t Rank, uint8_t ADC_SampleTime);
 ```
 
 ```c
-// 软件触发
+// ADC外部触发转换控制，是否允许外部触发转换
+void ADC_ExternalTrigConvCmd(ADC_TypeDef* ADCx, FunctionalState NewState);
+```
+
+```c
+// ADC获取转换值，读取数据寄存器值
+uint16_t ADC_GetConversionValue(ADC_TypeDef* ADCx);
+// ADC获取双模式转换值
+uint32_t ADC_GetDualModeConversionValue(void);
+```
+
+```c
+// 转换触发方式——软件触发，给SWATART置1，以开始转换
 void ADC_SoftwareStartConvCmd(ADC_TypeDef* ADCx, FunctionalState NewState);
+// 返回SWATART的状态，但SWATART在转换开始后就清零了，因此不能通过这个判断转换是否结束
+FlagStatus ADC_GetSoftwareStartConvStatus(ADC_TypeDef* ADCx);
 ```
 
 ```c
-// 配置间断模式
-// 每隔几个通道间断一次
+// ADC校准
+void ADC_ResetCalibration(ADC_TypeDef* ADCx);  // 复位校准
+FlagStatus ADC_GetResetCalibrationStatus(ADC_TypeDef* ADCx);  // 获取复位校准状态
+void ADC_StartCalibration(ADC_TypeDef* ADCx);  // 开始校准
+FlagStatus ADC_GetCalibrationStatus(ADC_TypeDef* ADCx);  // 获取开始校准状态
+```
+
+```c
+// 配置间断模式，设置每隔多少个通道间断一次
 void ADC_DiscModeChannelCountConfig(ADC_TypeDef* ADCx, uint8_t Number);
-// 是否启用
+// 是否启用间断模式
 void ADC_DiscModeCmd(ADC_TypeDef* ADCx, FunctionalState NewState);
 ```
 
 ```c
-// 规则组通道配置
-void ADC_RegularChannelConfig(ADC_TypeDef* ADCx, uint8_t ADC_Channel, uint8_t Rank, uint8_t ADC_SampleTime);
-// ADC外部触发转换控制
-void ADC_ExternalTrigConvCmd(ADC_TypeDef* ADCx, FunctionalState NewState);
-// ADC获取转换值
-uint16_t ADC_GetConversionValue(ADC_TypeDef* ADCx);
-// ADC获取双模式转换值
-uint32_t ADC_GetDualModeConversionValue(void);
-
-```
-
-```c
-// 关于注入组的
+// 关于注入组的，Injected —— 注入
 void ADC_AutoInjectedConvCmd(ADC_TypeDef* ADCx, FunctionalState NewState);
 void ADC_InjectedDiscModeCmd(ADC_TypeDef* ADCx, FunctionalState NewState);
 void ADC_ExternalTrigInjectedConvConfig(ADC_TypeDef* ADCx, uint32_t ADC_ExternalTrigInjecConv);
@@ -1535,13 +1604,13 @@ uint16_t ADC_GetInjectedConversionValue(ADC_TypeDef* ADCx, uint8_t ADC_InjectedC
 
 ```c
 // 对模拟看门狗进行配置的
-// 启动
+// 是否启动模拟看门狗
 void ADC_AnalogWatchdogCmd(ADC_TypeDef* ADCx, uint32_t ADC_AnalogWatchdog); 
 // 配置高低阈值
 void ADC_AnalogWatchdogThresholdsConfig(ADC_TypeDef* ADCx, uint16_t HighThreshold, uint16_t LowThreshold);
 // 配置看门的通道
 void ADC_AnalogWatchdogSingleChannelConfig(ADC_TypeDef* ADCx, uint8_t ADC_Channel);
-// 温度传感器、内部参考电压控制，开启内部通道的
+// 温度传感器、内部参考电压控制，开启内部通道那两个通道的
 void ADC_TempSensorVrefintCmd(FunctionalState NewState);
 ```
 
@@ -1604,8 +1673,9 @@ void AD_Init(void)
 }
 uint16_t AD_GetValue(void)
 {
-    // 读
+    // 软件触发转换
 	ADC_SoftwareStartConvCmd(ADC1,ENABLE);
+    // 等待转换完成后读取数据
 	while(ADC_GetFlagStatus(ADC1,ADC_FLAG_EOC) == RESET);
 	return ADC_GetConversionValue(ADC1);
 }
