@@ -1655,17 +1655,22 @@ void main(){
 
 ## 枚举类型
 
+在K&R的《C程序设计语言》中2.3节提到：“尽管可以声明enum类型的变量，但编译器不检查这种类型的变量中存储的值是否为该枚举的有效值。不过，枚举变量提供这种检查，因此枚举比#define更具优势。”提供这种检查是指提供枚举类型的检查，会检查变量的赋值是否是该枚举类型值，但是不会检查赋值本身是否合法。也就是说#define没有类型检查而enum有类型检查，虽然有类型检查，但是你仍然可以赋一些不是枚举类型的值给枚举类型变量，并且编译器不会报错，不管这个值是不是枚举常量中的值（也就是不管这个值是否有效）。
+
+（如上面所述，那既然这样，枚举类型怎么起限制作用？）
+
 枚举类型用来表示整型常量，常用来表示取值受限制的常量，是宏定义的集合。**在C 语言中，枚举类型是被当做 int 或者 unsigned int 类型来处理的。**
 
 1、声明枚举类型：
 
 ```c
-// 声明枚举类型，里面的常量的值依次为0~5（默认情况下从0开始）
+// 声明枚举类型，当枚举类型变量定义时里面的常量的值依次为0~5（默认情况下从0开始）
 enum spectrum {red, orange, yellow, green, blue, violet};
-void main{
+void main() {
+    // 定义枚举类型变量color，color只能取枚举类型里面的枚举常量值
     enum spectrum color;
     printf("%d\n",color);  // 0
-    color = blue; 
+    color = blue;          
     printf("%d\n",color);  // 4
     // 可用任意整数类型表示枚举变量，前提是这个类型可以存储下枚举常量
     unsigned char c = violet;
@@ -1673,7 +1678,7 @@ void main{
 }
 ```
 
-2、赋值：
+2、枚举常量的赋值：
 
 ```c
 // 默认情况下，每个枚举常量的值从0开始依次递增
@@ -1693,6 +1698,27 @@ for (color = red; color <= violet; color++){
    
 }
 ```
+
+4、强制转换：（将不是枚举常量值赋予枚举类型变量，此时值是无效值（因为枚举类型里面的枚举常量没有），但是类型有效）
+
+```c
+#include <stdio.h>
+enum value{v1,v2,v3,v4};
+void main() {
+    enum value test;
+    test = (enum value)0x80;
+    printf("test:%d\n",test);
+
+}
+```
+
+>按“c++之父”的原话 ：
+>
+>“#define无类型检查，enum有。是否有效不管。”
+>
+>“ 比如typedef enum{ ALPHA, GAMMA, BETA } EnType;”
+>
+>“我声明个EnType eType = 5;  如果ALPHA = 0，那么eType是无效的。但是类型是有效的，所以编译器不会报错。”
 
 ## typedef
 
