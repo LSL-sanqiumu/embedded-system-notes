@@ -2431,15 +2431,15 @@ USART （Universal Synchronous/Asynchronous Receiver/Transmitter）——   通�
 - 支持同步模式、硬件流控制、DMA、智能卡、IrDA、LIN。
 - STM32F103C8T6 USART资源： USART1（APB2总线的设备）、 USART2（APB1）、 USART3（APB1）。
 
-## USART结构框图
+## USART结构
+
+USART结构框图：
 
 ![](img/16.USART框图.png)
 
 
 
-
-
-## USART基本结构
+USART基本结构：
 
 ![](img/16.USART基本结构.png)
 
@@ -2766,7 +2766,7 @@ void USART1_IRQHandler(void)  // 中断处理函数
 		{
 			Serial_Data = USART_ReceiveData(USART1);
 			Serial_Flag = 1;
-        	// 中断中使用的标志位
+        	// 中断中使用的标志位清除函数
 			USART_ClearITPendingBit(USART1,USART_IT_RXNE);
 		}
 }
@@ -2946,7 +2946,7 @@ void USART1_IRQHandler(void)
 				RxState = 0;
 				Serial_RxFlag = 1;
 			}
-		}
+		}			
 		USART_ClearITPendingBit(USART1, USART_IT_RXNE);
 	}
 }
@@ -2998,7 +2998,7 @@ void Serial_Init(void)
 }
 ```
 
-发送文本：
+发送文本：（发送文本数据包则加上头部数据、尾部数据发送）
 
 ```c
 void Serial_SendByte(uint16_t Byte)
@@ -3103,7 +3103,6 @@ int main(void){
 			}
 			Serial_RxFlag = 0;
 		}
-	
 	}
 }
 ```
