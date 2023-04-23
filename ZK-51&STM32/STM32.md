@@ -2284,7 +2284,7 @@ STM32的通信接口：
 - RS232电平：-3~-15V表示1，+3~+15V表示0。
 - RS485电平：两线压差+2~+6V表示1，-2~-6V表示0（差分信号）。
 
-**硬件电路协议规定：**一个设备使用TX发送高低电平，另一个设备使用RX接收高低电平，在线路中使用TTL电平。
+**一般串口硬件电路协议规定：**一个设备使用TX线发送高低电平，另一个设备使用RX线接收高低电平，在线路中使用TTL电平。
 
 **串口参数及时序：**如何使用1和0来组成想要发送的一个字节数据？
 
@@ -2431,7 +2431,7 @@ USART （Universal Synchronous/Asynchronous Receiver/Transmitter）——   通�
 - 支持同步模式、硬件流控制、DMA、智能卡、IrDA、LIN。
 - STM32F103C8T6 USART资源： USART1（APB2总线的设备）、 USART2（APB1）、 USART3（APB1）。
 
-## USART框图
+## USART结构框图
 
 ![](img/16.USART框图.png)
 
@@ -2443,29 +2443,31 @@ USART （Universal Synchronous/Asynchronous Receiver/Transmitter）——   通�
 
 ![](img/16.USART基本结构.png)
 
-## USART细节
+## USART细节（了解）
 
-### 数据帧：
+### 数据帧
 
 ![](img/16.USART数据帧2.png)
 
 ![](img/16.USART数据帧.png)
 
-### 起始位检测：
+### 起始位检测
 
 ![](img/16.USART起始位检测.png)
 
-### 数据采样：
+### 数据采样
 
 ![](img/16.USART数据采样.png)
 
-### 波特率发生器：
+### 波特率发生器
 
 ![](img/16.USART波特率发生器.png)
 
-### 数据模式：
+### 数据模式
 
-HEX模式，以原始数据显示——收到什么数据就把什么数据显示出来。
+HEX模式，以原始数据显示——收到什么数据就直接把什么数据显示出来。
+
+字符模式：将接收到的原始数据编码为字符形式的数据再显示。
 
 ![](img/16.USART数据模式.png)
 
@@ -2478,6 +2480,15 @@ void USART_DeInit(USART_TypeDef* USARTx);
 void USART_Init(USART_TypeDef* USARTx, USART_InitTypeDef* USART_InitStruct);
 void USART_StructInit(USART_InitTypeDef* USART_InitStruct);
 ```
+
+USART初始化结构体参数说明 —— USART_InitTypeDef结构体：
+
+- USART_BaudRate：波特率。
+- USART_HardwareFlowControl：硬件流控制。
+- USART_Mode：模式，选择发送模式或者接收模式，如果既需要发送又需要接收，那就可以用或把两个都选上。
+- USART_Parity：校验位。
+- USART_StopBits：停止位。
+- USART_WordLength：字长，发送的数据的长度。
 
 ```c
 /* 配置同步时钟输出 */
@@ -2532,7 +2543,7 @@ void USART_ClearITPendingBit(USART_TypeDef* USARTx, uint16_t USART_IT);
 
 
 
-## 串口通信
+## 串口数据收发
 
 ### 发送数据
 
@@ -2564,7 +2575,7 @@ void Serial_SendByte(uint16_t Byte)
 {
 	USART_SendData(USART1, Byte);
 	while(USART_GetFlagStatus(USART1,USART_FLAG_TXE)==RESET);
-    // 标志位会自动被清0，不需要手动清0
+    // 获取标志位时标志位会自动被清0，不需要手动清0
 }
 ```
 
@@ -2592,7 +2603,7 @@ void Serial_SendString(char* String)
 		Serial_SendByte(String[i]);
 	}
 }
-/* 发送字符形式的数字 */
+/* 发送字符形式的数字：依次把个位、十位、百位取出来转为字符形式数字发送出去 */
 uint32_t Serial_Pow(uint32_t X, uint8_t Y){
 	uint32_t Result = 1;
 	while(Y--)	
@@ -2687,7 +2698,7 @@ int main(void){
     {
         if(USART_GetFlagStatus(USART1,USART_FLAG_RXNE)==SET)
         {
-            // 读取操作会自动将标志位清0
+            // 读取接收到的数据，会自动将标志位清0
             RX_data = USART_ReceiveData(USART1);
             OLED_ShowHexNum(1,1,RX_data,2);
         }
@@ -2736,7 +2747,7 @@ void Serial_Init(void)
 ```c
 /* 中断处理函数及功能封装 */
 uint8_t Serial_Data; 
-uint8_t Serial_Flag;  // 自定义标志位
+uint8_t Serial_Flag;  // 自定义标志位，标志是否完成了数据的接收
 uint8_t Serial_GetFlag(void)   // 获取自定义标志位后将自定义标志位清0
 {
 	if(Serial_Flag == 1) {
@@ -2755,6 +2766,7 @@ void USART1_IRQHandler(void)  // 中断处理函数
 		{
 			Serial_Data = USART_ReceiveData(USART1);
 			Serial_Flag = 1;
+        	// 中断中使用的标志位
 			USART_ClearITPendingBit(USART1,USART_IT_RXNE);
 		}
 }
@@ -2778,14 +2790,6 @@ int main(void){
 }
 
 ```
-
-
-
-
-
-
-
-
 
 
 
@@ -2878,7 +2882,6 @@ void Serial_Init(void)
 ```
 
 ```c
-/* 发送HEX数据包 */
 void Serial_SendByte(uint16_t Byte)
 {
 	USART_SendData(USART1, Byte);
@@ -2891,12 +2894,13 @@ void Serial_SendArray(uint8_t* Array, uint16_t Length)
 		Serial_SendByte(Array[i]);
 	}
 }
-  // 给Serial_TXPacket数组赋值，然后调用该函数发送定长数据包 
+/* 发送HEX数据包 */
+// 给Serial_TXPacket数组赋值，然后调用该函数发送定长数据包 
 void Serial_SendPacket(void)
 {
-	Serial_SendByte(0xFF);
-	Serial_SendArray(Serial_TXPacket, 4);
-	Serial_SendByte(0xFE);
+	Serial_SendByte(0xFF);  // 发送包头
+	Serial_SendArray(Serial_TXPacket, 4);  // 发送数据
+	Serial_SendByte(0xFE);  // 发送包尾
 }
 ```
 
