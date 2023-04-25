@@ -2,7 +2,17 @@
 
 ## 编译器
 
+参考文章：[C++主流编译器总结 - 张小凯的博客 (jasonkayzk.github.io)](https://jasonkayzk.github.io/2022/05/28/C++主流编译器总结/)
 
+C和C++主流的编译器GCC、G++、MSVC、clang等。
+
+关于LLVM：全称叫`Low Level Virtual machine`，最初设计是想搭建一套虚拟机，不过后来变成了一个编译器框架，但沿袭了LLVM的简称；Clang（`/ˈklæŋ/`），是编译器前端，用来编译C、C++、Objective-C；clang则是编译器驱动。（[(3条消息) LLVM基本概念入门_P2Tree的博客-CSDN博客](https://blog.csdn.net/SiberiaBear/article/details/103111028)）
+
+Windows下安装C/C++编译器：
+
+- MinGW-w64：Minimalist GNU on Windows，GNU的Windows版本，官网下载离线版并配置环境变量。（[MinGW-w64](https://www.mingw-w64.org/)）
+- MSVC：安装Visual Stdio，Visual Stdio自带MSVC（Microsoft Visual C++）。 
+- LLVM：安装LLVM的Windows版本，LLVM的clang默认使用MSVC，也可指定使用MinGW。
 
 
 
@@ -11,7 +21,7 @@
 C++源文件  ==>  编译器  ==>  二进制可执行文件。
 
 ```c++
-/* 第一个C++程序 */
+/* 第一个C++程序 main.cpp */
 #include <iostream>   
 // main函数，程序的入口，main函数默认返回值是0
 int main()
@@ -21,39 +31,31 @@ int main()
 }
 ```
 
-#之后的都是预处理语句，编译器优先处理的在实际编译之前就去处理的，include表示需要找到某个文件，此处是找到iostream这个文件然后就拷贝到当前程序源文件中，这些文件也称之为“头文件”。
+`#`之后的都是预处理语句，编译器优先处理的在实际编译之前就去处理的，预处理命令include表示需要找到某个文件，此处是找到iostream这个文件然后就拷贝到当前程序源文件中，这些文件也称之为“头文件”。
 
-- 源文件后缀：.cpp、.cc、.cxx、.C、.c++。
+- C++源文件后缀：.cpp、.cc、.cxx、.C、.c++。
 - 头文件后缀：.h、.hpp、 .hxx。
 
-X86：win32。X64：win64。
+## C++程序编译过程
 
-```c++
-/* Log.cpp */
-#include <iostream>
-void Log(const char* message)
-{
-	std::cout << message << std::endl;
-}
-/* Main.cpp */
-#include <iostream>
-void Log(const char* message);
-int main()
-{
-	Log("Hello World!");
-	std::cin.get();
-}
-```
+编译的完整过程：
 
+- 预处理器阶段 → 实际编译阶段 → 链接阶段 → 可执行文件。
+- 预编译处理(.c) → 编译、优化程序（.s）→ 汇编程序(.obj、.o、.a、.ko) →  链接程序（.exe、.elf、.axf等）。
 
+编译命令：`gcc -o main main.cpp`，将main.cpp编译为可执行文件main.exe。
 
-预处理器阶段   实际编译阶段  链接阶段  
+以程序`main.cpp`为例，可执行文件生成的整个过程：
 
-## C++程序执行过程
+1. `g++ -E main.cpp -o main.i`：预处理，此时生成`.i`文件（是一个C文件）；**预处理阶段把 `#include` 包含进来的 `.h文件` 插入到 `#include` 所在的位置，把源程序中使用到的用 `#define` 定义的宏用实际的字符串代替**。（-E参数，使编译在预处理结束后停止）
+2. `g++ -S main.i -o main.s`：编译，此时生成`.s`文件；**编译阶段，GCC 首先要检查代码的规范性、是否有语法错误等**，这是为了确定代码的实际要做的工作。（-S参数，使编译结束后结束）
+3. `g++ -c main.s -o main.o`：汇编，此时生成`.o`文件；**汇编阶段把 `.s`文件翻译成二进制机器指令文件`.o`，这个阶段接收 `.c` 、`.i`、`.s` 的文件都没有问题**。
+4. `g++ -o main main.s`：链接，连接目标代码、分配实际内存并生成可执行程序；**链接阶段，链接的是函数库，就是将main.cpp中没有定义的函数的具体实现给连接进来（预处理引进来的一般是声明和宏定义，函数具体实现基本都不会放在头文件里）**。（函数库分为动态库和静态库两种）
 
+关于动态库和静态库：
 
-
-
+- **静态库：是指编译链接时，把库文件的代码全部加入到可执行文件中，因此生成的文件比较大，但在运行时也就不再需要库文件了；Linux中后缀名为 `.a`**。（静态库节省时间：不需要再进行动态链接，需要调用的代码直接就在代码内部）
+- **动态库：与静态库相反，在编译链接时并没有把库文件的代码加入到可执行文件中，而是在程序执行时由运行时链接文件来加载库；Linux中动态库文件后缀名为 `.so`，如前面所述的 `libc.so` 就是动态库。**（动态库节省空间：如果一个动态库被两个程序调用，那么这个动态库只需要一份在内存中）
 
 # C++基础 
 
