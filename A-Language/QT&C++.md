@@ -145,23 +145,34 @@ QMetaObject::connectSlotsByName(MainWindow);
 
 
 
-## 可视化UI设计
+## 信号与槽
 
-### 访问组件
+信号（Signal），也就是事件。槽（Slot），也就是事件的响应函数，与普通函数的区别在于槽函数可以与信号关联，当信号被触发，槽函数就会被执行。
 
+**信号与槽的关联通过`QObject::connect()`函数实现：**（关联操作由UI Designer自动生成）
 
+```c++
+/** 
+	QObject::connect()基本格式：QObject::connect(发送信号的对象，SIGNAL(信号)，接收信号的对象，SLOT(槽函数))
+**/
+QObject::connect(sender, SIGNAL(signal()),receiver, SLOT(slot()));
+// 关联示例：按钮的点击事件，触发窗体的close()执行
+QObject::connect(pushButton, SIGNAL(clicked()), MainWindow, SLOT(close()));
+// QObject是所有类的基类，connect()是QObject的一个静态函数，因此可以省略QObject
+connect(pushButton, SIGNAL(clicked()), MainWindow, SLOT(close()));
+```
 
-### 组件布局
+信号，可以看成是一个特殊的函数；槽函数：与信号关联后，当信号被触发时执行的函数。
 
+**信号与槽的使用规则：**
 
-
-### 信号与槽
-
-
-
-
-
-
+1. 一个信号可以关联多个槽，当信号被触发时槽函数按建立关联的先后顺序依次执行。
+2. 当信号与槽函数带参数时，在在connect()函数里，要写明参数的类型，但可以不写参数名称。  
+3. 多个信号可以关联同一个槽。
+4. 一个信号可以关联另外一个信号，这样当一个信号发射时另一个也会被发射。
+5. 严格的情况下，信号与槽的参数个数和类型需要一致，至少信号的参数不能少于槽的参数。如果不匹配，会出现编译错误或运行错误。
+6. 在使用信号与槽的类中，必须在类的定义中加入宏Q_OBJECT。  
+7. 当一个信号被发射时，与其关联的槽函数通常被立即执行，就像正常调用一个函数一样。只有当信号关联的所有槽函数执行完毕后，才会执行发射信号处后面的代码。  
 
 
 
