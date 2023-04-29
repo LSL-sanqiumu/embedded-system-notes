@@ -2,6 +2,12 @@
 
 安装最后一个开源离线版：[Index of /archive/qt/5.14/5.14.2](https://download.qt.io/archive/qt/5.14/5.14.2/)，里面自带QTCreator。（编译器选择，按需选择）
 
+QT Creator设置：
+
+- 设置QT Creator启动时打开上次会话：File → Sessions → Manage... → √上 `Restore last session on startup`（启动时恢复上一个会话）。
+- 设置字体大小。
+- 设置主题。
+
 # Qt Widgets Application
 
 Qt Widgets Application，支持桌面平台的有图形用户界面（Graphic User Interface，GUI）界面的应用程序。  
@@ -174,7 +180,33 @@ connect(pushButton, SIGNAL(clicked()), MainWindow, SLOT(close()));
 6. 在使用信号与槽的类中，必须在类的定义中加入宏Q_OBJECT。  
 7. 当一个信号被发射时，与其关联的槽函数通常被立即执行，就像正常调用一个函数一样。只有当信号关联的所有槽函数执行完毕后，才会执行发射信号处后面的代码。  
 
+## 可视化UI设计
 
+可视化设计：利用QT Creator的Designer来生成槽函数原型和UI框架。
+
+在Design里面拖拽控件到窗体即可导入相关控件，还可以配置信号与槽、更改控件属性等，当编译时会自动生成相关文件——比如上面的ui_mainwindow.h文件。
+
+
+
+## 代码化UI设计
+
+UI的可视化设计，只是通过一定处理使得可以根据UI来生成底层的C++代码，所有的UI底层都是C++代码实现，通过QT的Designer可以快速地进行界面设计，但可视化设计毕竟有所局限，有些控件没有或者有些功能仅仅通过可视化编程实现不了，那就需要手动通过C++代码来写UI界面了。
+
+代码化UI设计：纯写C++代码来设计UI，界面设计的底层都是C++语言实现，使用C++直接编写UI能实现的功能更加强大，并且也更加灵活。（QT自带实例基本都是纯代码方式实现用户界面）
+
+
+
+
+
+
+
+
+
+
+
+## 混合方式设计
+
+当然，可视化设计、代码化设计两种方式可以混用，毕竟可视化设计最终也是生成C++代码的（UI → C++代码）。
 
 
 

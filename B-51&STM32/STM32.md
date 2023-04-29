@@ -3891,7 +3891,7 @@ SPI基本时序：起始条件时序、终止条件时序、数据交换时序�
 
 **2、数据交换时序，有四种模式：**
 
-CPOL——Clock Polarity，时钟极性；CPHA——Clock Phase，时钟相位；这两个是SPI可配置的位，用于配置SPI模式，共有四种配置方式，实际使用中学习一种即可，四种SPI模式功能都是一样的。W25Q64支持模式0和模式3，根据模式0、模式3的时序去写驱动即可（模式不需要配置，看器件是否支持，这里理解对吗？？？）。
+CPOL——Clock Polarity，时钟极性；CPHA——Clock Phase，时钟相位；这两个是SPI可配置的位，用于配置SPI模式，共有四种配置方式，实际使用中学习一种即可，四种SPI模式功能都是一样的。W25Q64支持模式0和模式3，根据模式0、模式3的时序去写驱动即可（模式不需要配置，看器件是否支持，使用哪个模式就直接用哪个模式的时序，这样理解对吗？？？）。
 
 **a.**交换一个字节（模式0，应用最多）：
 
@@ -3992,11 +3992,237 @@ W25Q256： 256Mbit / 32MByte
 
 ## SPI软件实现
 
+**1、主机端口初始化：**
 
+```c
+void Test_SPI_IOinit(void)
+{
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
+	// 根据硬件协议，输出的设为推挽输出
+    GPIO_InitTypeDef GPIO_InitStructure;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4 | GPIO_Pin_5 | GPIO_Pin_7 ;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
+	// 根据硬件协议，输入的设为上拉或浮空输入
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
+	// 根据协议，片选信号1为未选中状态
+    SPI_SS_W(1);
+    // 根据软件协议，模式0时，空闲状态下SCK为0
+    SPI_SCK_W(0);
+}
+```
 
+**2、SCK、MOSI、SS的电平翻转的实现与观测MISO端口的实现：**
 
+```c
+// SS
+void SPI_SS_W(uint8_t BitValue)
+{
+    GPIO_WriteBit(GPIOA,GPIO_Pin_4,(BitAction)BitValue);
+}
+// SCK
+void SPI_SCK_W(uint8_t BitValue)
+{
+    GPIO_WriteBit(GPIOA,GPIO_Pin_5,(BitAction)BitValue);
+}
+// MOSI
+void SPI_MOSI_W(uint8_t BitValue)
+{
+    GPIO_WriteBit(GPIOA,GPIO_Pin_7,(BitAction)BitValue);
+}
+// MISO，观测MISO端口电平并返回
+uint8_t SPI_MISO_R(void)
+{
+    return GPIO_ReadInputDataBit(GPIOA,GPIO_Pin_6);
+}
+```
 
+**3、实现时序单元组成部分：**
 
+```c
+// 起始条件
+void SPI_Start(void)
+{
+    SPI_SS_W(0);
+}
+// 终止条件
+void SPI_Stop(void)
+{
+    SPI_SS_W(1);
+}
+// 交换字节
+uint8_t SPI_SwapByte(uint8_t ByteData)
+{
+    uint8_t i,Receive_Data = 0x00;
+    // 发送，从A7发出，高到低
+    for (i = 0; i < 8; i++)
+    {
+        // 根据模式0时序，先移出数据再产生上升沿
+        SPI_MOSI_W(ByteData &(0x80 >> i));
+        SPI_SCK_W(1); // 上升沿
+        if (SPI_MISO_R() == 1)
+        {
+            Receive_Data = Receive_Data | (0x80 >> i);
+        }
+        SPI_SCK_W(0); // 使产生下降沿
+    }
+    return  Receive_Data;
+}
+```
+
+**4、测试：拼接时序实现W25Q64的ID的读取**
+
+```c
+// 读取W25Q64的ID，根据软件规定
+void W25Q64_ReadID(uint8_t* MID, uint16_t* DID)
+{
+    SPI_Start();                // 起始条件
+    SPI_SwapByte(0x9F);         // 发送指令码
+    *MID = SPI_SwapByte(0xFF);  // 读取
+	
+    *DID = SPI_SwapByte(0xFF);  // 读取
+    *DID <<= 8;
+    *DID |= SPI_SwapByte(0xFF); // 读取
+    SPI_Stop();                 // 终止条件
+}
+```
+
+**5、拼接时序实现对W25Q64的其它操作——W25Q64驱动：**
+
+W25Q64的指令宏定义：
+
+```c
+#ifndef __W25Q64_INS_H
+#define __W25Q64_INS_H
+
+#define W25Q64_WRITE_ENABLE							0x06
+#define W25Q64_WRITE_DISABLE						0x04
+#define W25Q64_READ_STATUS_REGISTER_1				0x05
+#define W25Q64_READ_STATUS_REGISTER_2				0x35
+#define W25Q64_WRITE_STATUS_REGISTER				0x01
+#define W25Q64_PAGE_PROGRAM							0x02
+#define W25Q64_QUAD_PAGE_PROGRAM					0x32
+#define W25Q64_BLOCK_ERASE_64KB						0xD8
+#define W25Q64_BLOCK_ERASE_32KB						0x52
+#define W25Q64_SECTOR_ERASE_4KB						0x20
+#define W25Q64_CHIP_ERASE							0xC7
+#define W25Q64_ERASE_SUSPEND						0x75
+#define W25Q64_ERASE_RESUME							0x7A
+#define W25Q64_POWER_DOWN							0xB9
+#define W25Q64_HIGH_PERFORMANCE_MODE				0xA3
+#define W25Q64_CONTINUOUS_READ_MODE_RESET			0xFF
+#define W25Q64_RELEASE_POWER_DOWN_HPM_DEVICE_ID		0xAB
+#define W25Q64_MANUFACTURER_DEVICE_ID				0x90
+#define W25Q64_READ_UNIQUE_ID						0x4B
+#define W25Q64_JEDEC_ID								0x9F
+#define W25Q64_READ_DATA							0x03
+#define W25Q64_FAST_READ							0x0B
+#define W25Q64_FAST_READ_DUAL_OUTPUT				0x3B
+#define W25Q64_FAST_READ_DUAL_IO					0xBB
+#define W25Q64_FAST_READ_QUAD_OUTPUT				0x6B
+#define W25Q64_FAST_READ_QUAD_IO					0xEB
+#define W25Q64_OCTAL_WORD_READ_QUAD_IO				0xE3
+
+#endif
+```
+
+操作实现：**Flash操作注意事项：**
+
+写入操作时：
+
+- 写入操作前，必须先进行写使能。
+- 每个数据位只能由1改写为0，不能由0改写为1。（相当于与操作写入）
+- 写入数据前必须先擦除，擦除后，所有数据位变为1。
+- 擦除必须按最小擦除单元进行。
+- 连续写入多字节时，最多写入一页的数据，超过页尾位置的数据，会回到页首覆盖写入。
+- 写入操作结束后，芯片进入忙状态，不响应新的读写操作。
+
+读取操作时：直接调用读取时序，无需使能，无需额外操作，没有页的限制，读取操作结束后不会进入忙状态，但不能在忙状态时读取。
+
+```c
+// 写使能
+void W25Q64_WriteEnable(void)
+{
+	SPI_Start();
+	SPI_SwapByte_Mode0(W25Q64_WRITE_ENABLE);
+	SPI_Stop();
+}
+// 等待忙
+void W25Q64_WaitBusy(void)
+{
+	uint32_t TimeOut;
+	SPI_Start();
+	SPI_SwapByte_Mode0(W25Q64_READ_STATUS_REGISTER_1);
+	TimeOut = 100000; 
+	while ((SPI_SwapByte_Mode0(0xFF) & 0x01) == 0x01)
+	{
+		TimeOut--;
+		if(TimeOut == 0) break;
+	}
+	SPI_Stop();
+}
+// 写入数据到W25Q64
+void W25Q64_PageProgram(uint32_t Address, uint8_t* DataArray, uint16_t Count)
+{
+	// 每次写入前都需要先写使能
+	W25Q64_WriteEnable();
+	uint16_t i;
+	SPI_Start();
+	// 发送指令
+	SPI_SwapByte_Mode0(W25Q64_PAGE_PROGRAM);
+	// 发送24位地址，W25Q64是24位地址的
+	SPI_SwapByte_Mode0(Address >> 16);
+	SPI_SwapByte_Mode0(Address >> 8);
+	SPI_SwapByte_Mode0(Address);
+	
+	// 发送要写入的数据
+	for(i = 0; i < Count; i++)
+	{
+		SPI_SwapByte_Mode0(DataArray[i]);
+	}
+	SPI_Stop();
+	// 事后等待
+	W25Q64_WaitBusy();
+}
+// 擦除功能，擦除扇区
+void W25Q64_SetctorErase(uint32_t Address)
+{
+	// 扇区擦除也需要写使能，因为擦除是写入1，写使能后不需写使能，写使能是自动操作
+	W25Q64_WriteEnable();
+	
+	SPI_Start();
+	// 发送指令
+	SPI_SwapByte_Mode0(W25Q64_SECTOR_ERASE_4KB);
+	// 发送24位地址，W25Q64是24位地址的
+	SPI_SwapByte_Mode0(Address >> 16);
+	SPI_SwapByte_Mode0(Address >> 8);
+	SPI_SwapByte_Mode0(Address);
+	SPI_Stop();
+	// 事后等待
+	W25Q64_WaitBusy();
+}
+// 读取W25Q64中的数据
+void W25Q64_ReadData(uint32_t Address, uint8_t* DataArray, uint32_t Count)
+{
+	uint32_t i;
+	SPI_Start();
+	// 发送指令
+	SPI_SwapByte_Mode0(W25Q64_READ_DATA);
+	// 发送24位地址，W25Q64是24位地址的
+	SPI_SwapByte_Mode0(Address >> 16);
+	SPI_SwapByte_Mode0(Address >> 8);
+	SPI_SwapByte_Mode0(Address);
+	for(i = 0; i < Count; i++)
+	{
+		DataArray[i] = SPI_SwapByte_Mode0(0xFF);
+	}
+	SPI_Stop();
+}
+```
 
 
 
@@ -4221,7 +4447,7 @@ TB6612是一款双路H桥型的直流电机驱动芯片，可以驱动两个直�
 - 一种是利用各种形式的多谐振荡电路直接产生所需要的矩形脉波。
 - 另一种则是通过各种整形电路将已有的周期性变化波形变换为符合要求的矩形脉冲。（在采用整形的方法获取矩形脉冲时，是以能够找到频率和幅度都符合要求的一种已有电压信号为前提的）
 
-关于这些电路：
+关于时钟信号产生电路：
 
 1. 自行产生矩形脉冲波形的多谐振荡电路有很多，比如：
    - 对称式多谐振荡电路
@@ -4232,7 +4458,21 @@ TB6612是一款双路H桥型的直流电机驱动芯片，可以驱动两个直�
    - 施密特触发电路
    - 单稳态电路
 
+> 摘自百度知道
+>
+> 常看到说，时钟信号是用来“同步”系统各器件（CPU、内存、总线等）的工作的。但是这里的“同步”实在是太笼统了。什么是“同步”？各器件为什么要同步？
+> 以下内容为个个学习总结出来的观点，不保证其正确性
+> 下面举存储器的例子来说明。
+> 先要了解到“存储器”是用触发器(flip-flop)或电容器(capacitor)做的。用触发器的就是SRAM，用电容器的就是DRAM。因为电容是会不断放电的，所以要不断对其充电（刷新），所以才叫做Dynamic RAM。
+> 然后要了解到，触发器和电容器做的都分为两类：不同步的和同步的。不同步的触发器叫做简单(simple)或透明(transparent)触发器；同步的触发器叫做钟控(clocked)触发器。另一方面，不同步的电容器做的RAM就叫DRAM，同步的电容器做的RAM就叫SDRAM。
+>
+> 触发器和电容器都是放在电路里工作（例如返回它们保存的值，设置它们的值等）的；它们工作是要时间的；它们完成工作后，要“通知”其他器件它们工作完成了（这就是各器件要“同步”的原因）。“通知”方式就有两种：通过外部时钟信号和其他方式（例如不同步的CPU用的"pipeline controls" or "FIFO sequencers."等）。通过外部时钟信号来告诉其他部件工作已完成就叫做“同步”。具体地说，就是触发器和电容器在一个时钟周期内必须完成工作，这样其他部件就可以认为是“被通知了”。
+
+
+
 ## CPU与时钟
+
+CPU的时钟信号来源：
 
 
 
@@ -4298,11 +4538,12 @@ TB6612是一款双路H桥型的直流电机驱动芯片，可以驱动两个直�
 
 **因此，程序状态字寄存器是一个保存各种状态条件标志的寄存器。**
 
-作者：DemonHunter211 
-来源：CSDN 
-原文：https://blog.csdn.net/kwame211/article/details/77773621?utm_source=copy 
-版权声明：本文为博主原创文章，转载请附上博文链接！
-————————————————
-版权声明：本文为CSDN博主「魏波.」的原创文章，遵循CC 4.0 BY-SA版权协议，转载请附上原文出处链接及本声明。
-原文链接：https://blog.csdn.net/weibo1230123/article/details/83106141
+> 作者：DemonHunter211 
+> 来源：CSDN 
+> 原文：https://blog.csdn.net/kwame211/article/details/77773621?utm_source=copy 
+> 版权声明：本文为博主原创文章，转载请附上博文链接！
+> ————————————————
+>
+> 版权声明：本文为CSDN博主「魏波.」的原创文章，遵循CC 4.0 BY-SA版权协议，转载请附上原文出处链接及本声明。
+> 原文链接：https://blog.csdn.net/weibo1230123/article/details/83106141
 
