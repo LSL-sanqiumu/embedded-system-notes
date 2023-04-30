@@ -12,7 +12,17 @@ QT Creator设置：
 
 Qt Widgets Application，支持桌面平台的有图形用户界面（Graphic User Interface，GUI）界面的应用程序。  
 
-创建Qt Widgets Application项目：New File or Project → Qt Widgets Application → choose... → Location，项目命名与项目目录选择 → Build System选择，qmake → Details，设计主窗体 → Translation，默认 → Kits，32和64位都选上吧 → Summary，项目目录确认与更改 → Finished。
+创建Qt Widgets Application项目：**1.**New File or Project → **2.**Qt Widgets Application → choose... → 3.Location，项目命名与项目目录选择 → **4.**Build System选择，qmake → **5.**Details，要创建的窗体类和头文件，（选上Generate form，勾了就会创建.ui文件而且生成的代码里会自动添加ui成员变量，如果你要用designer来设置ui就勾上，如果没有界面或者要自己在cpp里添加界面代码就不要勾） → **6.**Translation，默认，界面语言翻译配置 → **7.**Kits，32和64位都选上吧 → **8.**Summary，项目目录确认与更改 → **9.**Finished。
+
+Details配置中Base Class说明——QDialog、QWidget、QMainWindow的区别：
+
+- QWidget是所有用户界面对象的基类。QDialog和QMainWindow都继承自QWidget，也就是说QDialog和QMainWindow在QWidget的基础上拓展了一些东西。
+  dialog —— 对话框；mainwindow —— 主窗口；widget —— 小部件。
+
+> 官方文档：
+> QMainWindow类：https://doc.qt.io/qt-5/qmainwindow.html 
+> QWidget类：https://doc.qt.io/qt-5/qwidget.html
+> QDialog类：https://doc.qt.io/qt-5/qdialog.html
 
 Qt Widgets Application项目目录说明：
 
@@ -21,6 +31,30 @@ Qt Widgets Application项目目录说明：
 编译与调试：
 
 ![](imgQT/2.编译与调试工具.png)
+
+[《Qt5：Widget、Dialog和MainWindow之间的关系》_Snow__Sunny的博客-CSDN博客](https://blog.csdn.net/Snow__Sunny/article/details/108831463#:~:text=Widget翻译,立创建用户界面。)：
+
+>### Widget（小部件）
+>
+>小部件是用户界面的原子：它从窗口系统接收鼠标，键盘和其他事件，并在屏幕上绘制自己（继承了绘制类）。每个小部件都是矩形的，它们按Z顺序排序。
+>
+>小部件包括窗口小部件和非窗口小部件。
+>
+>1、窗口小部件（可以称为独立窗口或者顶级窗口小部件）就是我们创建Qt桌面应用程序时，自动生成的窗口界面，包含标题栏，可以设置标题和图标，还有什么最大最小化以及退出按钮，它本身就是父窗口（未嵌入其它窗口）。MainWindow和Dialog以及Dialog的子类都是典型的窗口小部件。
+>
+>```cobol
+>QWidget *parent = 0
+>```
+>
+>2、非窗口小部件是子小部件，它是嵌入在父窗口中的，不能独立显示，只能显示在其父窗口小部件中。Qt  Designer中的所有小部件都属于非窗口小部件，都需要嵌入到父窗口小部件中，用于显示数据和状态信息，接收用户输入。
+>
+>### MainWindow（主窗口）
+>
+>主窗口提供了构建应用程序用户界面的框架。主窗口拥有自己的布局，包括中央区域、菜单栏、工具栏、状态栏以及Dock小部件，具体分布如下图所示。布局的中心区域可以被任何类型的小部件占用，也就是我们常用来拖拉控件的区域，其它区域可以没有，但是不能没有中央区域。最常见的主窗口就是WPS。稍微大一点的项目就使用QMainWindow来创建，嵌入到主窗口使用QWidget，辅助窗口使用QDialog，如果是内容比较单一的项目，使用QDialog基本上也可以搞定了。
+>
+>### Dialog（对话框）
+>
+>Dialog（对话框）一般用作辅助窗口，为用户提供选项并主窗口进行交互，弹出一个对话框，然后选择“OK”或者“cannel”。此外，Qt也提供了许多现成的标准对话框，可用于标准任务，如文件对话框、字体对话框、颜色对话框、消息对话框等。 对话框又分为模态对话框和非模态对话框。
 
 # GUI应用设计基础
 
