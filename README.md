@@ -9,7 +9,7 @@ Open&Sharing
 - 制定合适的目标坚持100天
 - 一次一个目标是种独特的能力
 - 记录的力量
-- 没有检视的人生不值的活
+- 没有检视的人生不值得活
 - 中断、失败和痛苦是你必须面对的事情
 - 成长从复盘开始
 - 100天只是一个起点
@@ -26,8 +26,6 @@ Open&Sharing
 
 
 现有答案中打鸡血的太多，真正说方法的太少，给一些可以立刻应用的学习建议吧：
-
-
 
 ### 1、不要在精疲力竭的时候学习
 
@@ -89,7 +87,7 @@ Open&Sharing
 
 - [简单三步，掌握任何一门学科](https://link.zhihu.com/?target=https%3A//mp.weixin.qq.com/s%3F__biz%3DMjM5NjA3OTM0MA%3D%3D%26mid%3D2655710226%26idx%3D1%26sn%3D05b3655b4635d1c894b77df43d11b966%26chksm%3Dbd50ff918a2776872e7376d692a44f2ce4c1e062b0221dbe64567c669a71e9d8df00e63ebd71%26scene%3D21%23wechat_redirect)
 
-
+![](img/费曼learn.png)
 
 ### 6、睡觉，然后明天早点起床学习
 

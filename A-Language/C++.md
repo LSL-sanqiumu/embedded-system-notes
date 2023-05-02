@@ -6,13 +6,15 @@
 
 C和C++主流的编译器GCC、G++、MSVC、clang等。
 
-关于LLVM：全称叫`Low Level Virtual machine`，最初设计是想搭建一套虚拟机，不过后来变成了一个编译器框架，但沿袭了LLVM的简称；Clang（`/ˈklæŋ/`），是编译器前端，用来编译C、C++、Objective-C；clang则是编译器驱动。（[(3条消息) LLVM基本概念入门_P2Tree的博客-CSDN博客](https://blog.csdn.net/SiberiaBear/article/details/103111028)）
+关于LLVM：全称叫`Low Level Virtual machine`，最初设计是想搭建一套虚拟机，不过后来变成了一个编译器框架，但沿袭了LLVM的简称；Clang（`/ˈklæŋ/`），是编译器前端，用来编译C、C++、Objective-C；clang则是编译器驱动。（[LLVM基本概念入门_P2Tree的博客-CSDN博客](https://blog.csdn.net/SiberiaBear/article/details/103111028)）
 
 Windows下安装C/C++编译器：
 
 - MinGW-w64：Minimalist GNU on Windows，GNU的Windows版本，官网下载离线版并配置环境变量。（[MinGW-w64](https://www.mingw-w64.org/)）
 - MSVC：安装Visual Stdio，Visual Stdio自带MSVC（Microsoft Visual C++）。 
 - LLVM：安装LLVM的Windows版本，LLVM的clang默认使用MSVC，也可指定使用MinGW。
+
+
 
 
 
@@ -56,6 +58,41 @@ int main()
 
 - **静态库：是指编译链接时，把库文件的代码全部加入到可执行文件中，因此生成的文件比较大，但在运行时也就不再需要库文件了；Linux中后缀名为 `.a`**。（静态库节省时间：不需要再进行动态链接，需要调用的代码直接就在代码内部）
 - **动态库：与静态库相反，在编译链接时并没有把库文件的代码加入到可执行文件中，而是在程序执行时由运行时链接文件来加载库；Linux中动态库文件后缀名为 `.so`，如前面所述的 `libc.so` 就是动态库。**（动态库节省空间：如果一个动态库被两个程序调用，那么这个动态库只需要一份在内存中）
+
+## make&cmake
+
+make：一个根据指定的Shell命令进行构建的工具。何为构建？构建就是对编译的安排，安排文件编译的先后顺序。简单来说，make就是一个批处理程序，其本身没有链接和编译的功能，只能通过调用makefile文件中用户指定的命令来编译和链接。
+
+makefile：一个包含构建规则（Shell命令）的文件，类unix环境下(比如Linux)的类似于批处理)的"脚本"文件，make工具根据里面的规则（命令）来进行源文件的编译和链接。
+
+make&makefile：在一些简单的工程下编写命令来进行构建不是什么麻烦事，但是当工程非常大的时候，makefile就会非常麻烦了；因此后面出现了cmake。
+
+cmake：可以更加简单地生成makefile，并且还有跨平台生成对应平台的makefile的功能。cmake工具通过CMakeLists.txt文件（学名：组态档）去生成makefile，这个文件一般都是由程序员来写，也有些IDE能自动写好CMakeLists.txt文件。
+
+qmake：Qt公司制造出来，用来生成Qt 专用makefile文件，这种makefile文件就能自动智能调用moc和uic对源程序进行预处理和编译。qmake当然必须也是跨平台的，跟cmake一样能对应各种平台生成对应makefile文件。由于qmake很简单很好用又支持跨平台，而且是可以独立于它的IDE，所以你也可以用在非Qt工程上面，照样可以生成普通的makefile，只要在pro文件中加入CONFIG -= qt 就可以了
+
+qmake和cmake有什么区别？
+
+cmake也是同样支持Qt程序的，cmake也能生成针对qt 程序的那种特殊makefile，只是cmake的CMakeLists.txt 写起来相对与qmake的pro文件复杂点。
+qmake 是为 Qt 量身打造的，使用起来非常方便，但是cmake功能比qmake强大。
+
+
+
+> 作者：辉常哥
+> 链接：https://www.zhihu.com/question/27455963/answer/89770919
+> 来源：知乎
+> 著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
+
+总结一下 makefile：  
+
+makefile 规定了一套编译规则，使用什么[编译器](https://www.zhihu.com/search?q=编译器&search_source=Entity&hybrid_search_source=Entity&hybrid_search_extra={"sourceType"%3A"answer"%2C"sourceId"%3A1914452432})，编译器使用什么样的编译选项，每个文件都有什么依赖关系。在编译的时候，能够直接根据 makefile 来确定哪些文件依赖于其他的哪些文件，从而把编译顺序、需不需要重新编译以及链接都自动检测出来，配合上 g++ 的 -MM 选项，这能够节约大量的编译时间，避免重新编译没有做过任何改动的文件。我们都知道 cpp 的编译速度本身就慢的感人……  
+
+这样，有效防止了每次做一些改动就要把所有文件都编译一遍的浪费时间的做法。不然的话，一个 cpp 项目，可能编译半天也编译不完，要是想改点什么地方，难道还要等那么长时间再重新测试吗？
+
+> 作者：Timothy Liu
+> 链接：https://www.zhihu.com/question/461953861/answer/1914452432
+> 来源：知乎
+> 著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
 
 # C++基础 
 
