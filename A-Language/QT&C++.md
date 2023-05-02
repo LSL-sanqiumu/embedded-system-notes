@@ -218,21 +218,266 @@ connect(pushButton, SIGNAL(clicked()), MainWindow, SLOT(close()));
 
 可视化设计：利用QT Creator的Designer来生成槽函数原型和UI框架。
 
-在Design里面拖拽控件到窗体即可导入相关控件，还可以配置信号与槽、更改控件属性等，当编译时会自动生成相关文件——比如上面的ui_mainwindow.h文件。
+要使用可视化设计，需要在创建窗体类和头文件时需要勾选Generate form。
+
+![](imgQT/4.可视化UI设计.png)
+
+创建完毕，在Design里面拖拽控件到窗体即可导入相关控件，还可以配置信号与槽、更改控件属性等，当编译时会自动生成相关文件——比如上面的ui_mainwindow.h文件。
 
 
 
 ## 代码化UI设计
 
+**概述：**
+
 UI的可视化设计，只是通过一定处理使得可以根据UI来生成底层的C++代码，所有的UI底层都是C++代码实现，通过QT的Designer可以快速地进行界面设计，但可视化设计毕竟有所局限，有些控件没有或者有些功能仅仅通过可视化编程实现不了，那就需要手动通过C++代码来写UI界面了。
 
 代码化UI设计：纯写C++代码来设计UI，界面设计的底层都是C++语言实现，使用C++直接编写UI能实现的功能更加强大，并且也更加灵活。（QT自带实例基本都是纯代码方式实现用户界面）
 
+纯代码化的UI设计与QT Widgets Application的开发：
+
+1. 创建好窗体类和头文件，不勾选 Generate form。
+2. 窗体头文件：添加窗体组件、声明初始化函数、声明槽函数。
+3. 窗体源代码文件：对象初始化函数实现、窗体初始化函数实现、析构函数实现、槽函数实现。
+4. 编译&运行。
+5. 补充：需要使用到QT类库。
+
+**示例——以QDialog基类为例：**
+
+1、基于QDialog基类创建窗体文件：
+
+![](imgQT/5.代码化UI设计.png)
+
+创建后的文件：
+
+①mydialog.h文件：
+
+```c++
+#ifndef MYDIALOG_H
+#define MYDIALOG_H
+
+#include <QDialog>
+
+class MyDialog : public QDialog
+{
+    Q_OBJECT
+
+public:
+    MyDialog(QWidget *parent = nullptr);
+    ~MyDialog();
+};
+#endif // MYDIALOG_H
+```
+
+②mydialog.cpp文件：
+
+```c++
+#include "mydialog.h"
+
+MyDialog::MyDialog(QWidget *parent)
+    : QDialog(parent)
+{
+}
+
+MyDialog::~MyDialog()
+{
+}
+```
+
+③main.cpp文件：
+
+```c++
+#include "mydialog.h"
+
+#include <QApplication>
+
+int main(int argc, char *argv[])
+{
+    QApplication a(argc, argv);
+    MyDialog w;
+    w.show();
+    return a.exec();
+}
+```
+
+可以看出，初始窗体头文件中只有` Q_OBJECT`宏定义和公有的初始化函数、析构函数（仅用于实现删除new创建的对象）；初始窗体cpp文件只有这两个函数的定义（还没有实现内容）。
+
+2、通过代码设计实现UI，操作上来说就是在头文件中声明好一些窗体初始化的方法、组件对象、声明好槽函数等，并在头文件对应的cpp文件中实现声明的函数。
+
+①在mydialog.h文件中声明：
+
+```c++
+#ifndef MYDIALOG_H
+#define MYDIALOG_H
+
+#include <QDialog>
+#include <QCheckBox>
+#include <QRadioButton>
+#include <QPlainTextEdit>
+#include <QPushButton>
+class MyDialog : public QDialog
+{
+    Q_OBJECT
+private:
+    // 窗体对象的成员
+    QCheckBox   *chkBoxUnder;
+    QCheckBox   *chkBoxItalic;
+    QCheckBox   *chkBoxBold;
+
+    QRadioButton    *rBtnBlack;
+    QRadioButton    *rBtnRed;
+    QRadioButton    *rBtnBlue;
+
+    QPlainTextEdit  *txtEdit;
+
+    QPushButton     *btnOK;
+    QPushButton     *btnCancel;
+    QPushButton     *btnClose;
+	// UI创建、信号与槽初始化
+    void initUI(); // UI创建与初始化
+    void iniSignalSlots(); // 初始化信号与槽的连接
+private slots:  // 声明槽函数
+    void on_chkBoxUnder(bool checked);  // 用于Underline 的clicked(bool)信号的槽函数
+    void on_chkBoxItalic(bool checked); // 用于Italic 的clicked(bool)信号的槽函数
+    void on_chkBoxBold(bool checked);   // 用于Bold 的clicked(bool)信号的槽函数
+    void setTextFontColor();            // 用于设置字体颜色
+public:
+    MyDialog(QWidget *parent = nullptr);
+    ~MyDialog();
+};
+#endif // MYDIALOG_H
+```
+
+②在mydialog.cpp文件中实现：
+
+```c++
+#include "mydialog.h"
+#include <QHBoxLayout>
+#include <QVBoxLayout>
+/* 窗体建立前执行初始化 */
+MyDialog::MyDialog(QWidget *parent)
+: QDialog(parent)
+{
+    initUI(); //界面创建与布局
+    iniSignalSlots(); //信号与槽的关联
+    setWindowTitle("Form created manually ME");//设置窗体标题
+}
+
+MyDialog::~MyDialog()
+{
+
+}
+/* 窗体界面创建与布局 */
+void MyDialog::initUI()
+{
+    // 创建 Underline, Italic, Bold三个CheckBox，并水平布局
+    chkBoxUnder = new QCheckBox(tr("Underline"));
+    chkBoxItalic = new QCheckBox(tr("Italic"));
+    chkBoxBold = new QCheckBox(tr("Bold"));
+
+    QHBoxLayout *HLay1=new QHBoxLayout;
+    HLay1->addWidget(chkBoxUnder);
+    HLay1->addWidget(chkBoxItalic);
+    HLay1->addWidget(chkBoxBold);
+
+    // 创建 Black, Red, Blue三个RadioButton，并水平布局
+    rBtnBlack=new QRadioButton(tr("Black"));
+    rBtnBlack->setChecked(true);//缺省被选中
+    rBtnRed=new QRadioButton(tr("Red"));
+    rBtnBlue=new QRadioButton(tr("Blue"));
+
+    QHBoxLayout *HLay2=new QHBoxLayout;
+    HLay2->addWidget(rBtnBlack);
+    HLay2->addWidget(rBtnRed);
+    HLay2->addWidget(rBtnBlue);
+
+    //创建 确定, 取消, 退出 三个 QPushButton, 并水平布局
+    btnOK=new QPushButton(tr("确定"));
+    btnCancel=new QPushButton(tr("取消"));
+    btnClose=new QPushButton(tr("退出"));
+
+    QHBoxLayout *HLay3=new QHBoxLayout;
+    HLay3->addStretch();
+    HLay3->addWidget(btnOK);
+    HLay3->addWidget(btnCancel);
+    HLay3->addStretch();
+    HLay3->addWidget(btnClose);
 
 
+    //创建 文本框,并设置初始字体
+    txtEdit=new QPlainTextEdit;
+    txtEdit->setPlainText("Hello world\n\nIt is my demo");
 
+    QFont   font=txtEdit->font(); //获取字体
+    font.setPointSize(20);//修改字体大小为20
+    txtEdit->setFont(font);//设置字体
 
+    //创建 垂直布局，并设置为主布局
+    QVBoxLayout *VLay=new QVBoxLayout;
+    VLay->addLayout(HLay1); //添加字体类型组
+    VLay->addLayout(HLay2);//添加字体颜色组
+    VLay->addWidget(txtEdit);//添加PlainTextEdit
+    VLay->addLayout(HLay3);//添加按键组
 
+    setLayout(VLay); //设置为窗体的主布局
+}
+/* 信号与槽的初始化：实现信号与槽的关联 */
+void MyDialog::iniSignalSlots()
+{
+    //三个颜色  QRadioButton的clicked()事件与setTextFontColor()槽函数关联
+    connect(rBtnBlue,SIGNAL(clicked()),this,SLOT(setTextFontColor()));//
+    connect(rBtnRed,SIGNAL(clicked()),this,SLOT(setTextFontColor()));//
+    connect(rBtnBlack,SIGNAL(clicked()),this,SLOT(setTextFontColor()));//
+
+    //三个字体设置的  QCheckBox 的clicked(bool)事件与 相应的槽函数关联
+    connect(chkBoxUnder,SIGNAL(clicked(bool)),this,SLOT(on_chkBoxUnder(bool)));//
+    connect(chkBoxItalic,SIGNAL(clicked(bool)),this,SLOT(on_chkBoxItalic(bool)));//
+    connect(chkBoxBold,SIGNAL(clicked(bool)),this,SLOT(on_chkBoxBold(bool)));//
+
+    //三个按键与窗体的槽函数关联
+    connect(btnOK,SIGNAL(clicked()),this,SLOT(accept()));//
+    connect(btnCancel,SIGNAL(clicked()),this,SLOT(reject()));//
+    connect(btnClose,SIGNAL(clicked()),this,SLOT(close()));//
+}
+/* 槽函数实现：点击按钮为文字添加下划线 */
+void MyDialog::on_chkBoxUnder(bool checked)
+{
+    QFont   font=txtEdit->font();
+    font.setUnderline(checked);
+    txtEdit->setFont(font);
+}
+/* 槽函数实现：点击按钮设置字体正斜 */
+void MyDialog::on_chkBoxItalic(bool checked)
+{
+    QFont   font=txtEdit->font();
+    font.setItalic(checked);
+    txtEdit->setFont(font);
+}
+/* 槽函数实现：点击按钮加粗文字 */
+void MyDialog::on_chkBoxBold(bool checked)
+{
+    QFont   font=txtEdit->font();
+    font.setBold(checked);
+    txtEdit->setFont(font);
+}
+/* 槽函数实现：点击复选按钮设置文字颜色 */
+void MyDialog::setTextFontColor()
+{
+    QPalette   plet=txtEdit->palette();
+    if (rBtnBlue->isChecked())
+    plet.setColor(QPalette::Text,Qt::blue);
+    else if (rBtnRed->isChecked())
+    plet.setColor(QPalette::Text,Qt::red);
+    else if (rBtnBlack->isChecked())
+    plet.setColor(QPalette::Text,Qt::black);
+    else
+    plet.setColor(QPalette::Text,Qt::black);
+
+    txtEdit->setPalette(plet);
+}
+```
+
+3、编译&运行：得到图形操作界面程序。
 
 
 
