@@ -160,6 +160,31 @@ STM32F10X_MD的字符串keil5会自动帮声明。
 
 ![](img/4.启动文件.png)
 
+
+
+# 单片机烧录
+
+> 参考：[单片机程序烧录的3种方式(ISP、ICP、IAP)是什么？ - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/367821312)
+
+烧录：将程序源代码文件编译为机器码后写入到芯片的特定存储区域中。
+
+烧录方式：离线烧录、在线烧录。
+
+离线烧录的3种烧录方式：
+
+- ISP（In-System Programming）
+  在系统编程，使用**引导程序（Bootloader）加上外围UART/SPI等接口**进行烧录。
+- ICP （In-circuit programmer）
+  在电路编程，使用**SWD/JTAG接口**。
+- IAP（In-Application Programming）
+  指MCU可以在系统中获取新代码并对自己重新编程，即**用程序来改变程序**。
+
+STM32中的存储器：
+
+![](img/14.stm32寄存器.png)
+
+
+
 # 时钟树
 
 ## 内部时钟

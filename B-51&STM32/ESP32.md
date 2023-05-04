@@ -1,10 +1,12 @@
-# C3开发文档
+# ESP32-C3-MINI1
+
+## C3开发文档
 
 [ESP32-C3 快速参考手册 — MicroPython 1.18 documentation (01studio.cc)](https://docs.01studio.cc/esp32-c3/quickref.html#networking)
 
-# 开发环境
+## 开发环境
 
-## Arduino
+### Arduino
 
 1、新建一个文件夹`ArdunioProjects`用来存放ESP32支持包。
 
@@ -14,7 +16,7 @@
 
 4、工具  → 开发板 → 选择ESP32Arduino（in stetchbook）→ 选开发板。
 
-## VSCode+Arduino
+### VSCode+Arduino
 
 1、安装Arduino插件。
 
@@ -49,7 +51,7 @@ settings.json ：
 }
 ```
 
-## MicroPython
+### MicroPython
 
 1、开发软件与固件下载：
 
@@ -69,7 +71,7 @@ settings.json ：
 
 
 
-# 管脚
+## 管脚
 
 ESP32C3—MINI 1模组：
 
@@ -90,7 +92,7 @@ ESP32C3—MINI 1模组：
 | V3                       | V5                       |
 |                          |                          |
 
-# GPIO口
+## GPIO口
 
 ```python
 import machine
@@ -103,7 +105,7 @@ while 1:
     time.sleep(1)
 ```
 
-# PWM
+## PWM
 
 ```python
 from machine import Pin, PWM
@@ -122,7 +124,7 @@ while True:
 
 
 
-# WiFi连接
+## WiFi连接
 
 连接WiFi：（32只支持连接2.4G频段的WiFi）
 
@@ -157,5 +159,29 @@ Windows：ipconfig，查看无线局域网 IPv4 地址。
 
 
 
+# MQTT服务器的搭建
 
+1、安装好docker。
+
+2、使用docker安装MQTT服务器——emqx：
+
+- 下载：`docker pull emqx`。
+- 启动：`docker run  --name=mqtt  --net=host --restart=always -d emqx`。
+
+3、登录mqtt后台管理页面：http://{ip}:18083，确认部署成功；默认账号：`admin`，默认密码：`public`；第一次登录会要你修改密码。
+
+4、MQTT服务端口默认是1883，注意要开放此端口。
+
+5、测试——：
+
+- Windows下的MQTT客户端：[MQTTX: Cross-platform MQTT 5.0 Desktop Client](https://mqttx.app/)。
+- Windows下的MQTT服务端：https://github.com/emqx/emqx/releases/。（或者在云服务器安装了服务端）
+
+![](imgESP32/mqtt.png)
+
+
+
+
+
+# ESP8266 01S
 
