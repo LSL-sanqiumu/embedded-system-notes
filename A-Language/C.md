@@ -115,7 +115,7 @@ yum -y install wget httpd-tools vim
 
 ## Start C
 
-单文件程序：
+单文件程序main.c：
 
 ```c
 #include <stdio.h>
@@ -123,6 +123,13 @@ int main(){
    
     return 0;
 }
+```
+
+编译与运行：
+
+```c
+gcc -o main main.c  // 将main.c编译为可执行文件main
+main                // 运行可执行文件main
 ```
 
 
@@ -153,15 +160,15 @@ int main(){
 #define STR "我是一个常量字符串"
 #define INT_MAX +32767
 int main(){
-	// 编译程序时， 程序中所有的TAXRATE都会被替换成0.015。 这一过程被  
-    // 称为编译时替换（compile-time substitution）
-	printf("%d",VALUE); 
-	printf("%c",BEEP); 
-	printf("%s",STR); 
+	/* 编译程序时， 程序中所有的宏定义都会被替换成对应的字符。 这一过程被  
+    称为编译时替换（compile-time substitution）*/
+	printf("%d",VALUE);  // VALUE 会被替换为12
+	printf("%c",BEEP);   // 同理
+	printf("%s",STR);    // 同理
 }
 ```
 
-使用const限定符：
+使用const限定符定义只读变量：
 
 ```c
 #include <stdio.h>
@@ -172,7 +179,9 @@ int main(){
 }
 ```
 
-一些头文件定义了关于类型信息的一些常量：如`#include <limits.h>` ——整型限制  ，`#include <float.h>`—— 浮点型限制。
+一些头文件定义了关于类型信息的一些常量：如`#include <limits.h>` —— 整型限制  ，`#include <float.h>`—— 浮点型限制。
+
+
 
 ## 数据类型
 
@@ -208,14 +217,14 @@ int main(){
 
 3、C中的整型以有无符号分类：
 
-- 有符号整型：short、short int、int、long、long long、long long int。（也可以使用signed来强度这是有符号类型）
+- 有符号整型：short、short int、int、long、long long、long long int。（也可以使用signed来强调这是有符号类型）
 - 无符号整型：加上unsigned关键字即可。
 
 常见的存储：short——16位，int——32位，long——32位，long long——64位。
 
 通常的整数数值都看作是int型，如果数值超了int的范围，编译器会尝试使用unsigned int，如果还不够大， 编译器会依次使用long、 unsigned long、 long  long、和unsigned long long类型。
 
-4、数值后缀：
+4、数值后缀：后缀的意义在于**明确声明字面量的类型，而不是使用该类字面量的默认类型**。
 
 ```c
 #include <stdio.h>
@@ -259,7 +268,7 @@ int main(){
 
 **默认情况下， 编译器假定浮点型常量是double类型的精度。**  
 
-4、使用进制表示：C99 标准——用16进制表示浮点型常量：即在十六进制数前加上十六进制前缀（0x或0X） ， 用p和P分别代替e和
+4、使用进制表示：C99 标准——用16进制表示浮点型常量，即在十六进制数前加上十六进制前缀（0x或0X） ， 用p和P分别代替e和
 E， 用2的幂代替10的幂（即， p计数法）  
 
 ```c
@@ -300,6 +309,8 @@ int main(){
 
 ### sizeof()
 
+sizeof实际上是获取了数据在内存中所占用的存储空间，以字节为单位来计数。
+
 ```c
 #include <stdio.h>
 int main(){
@@ -336,13 +347,15 @@ int main(){
 }
 ```
 
-打印不出来的一些字符，比如蜂鸣等符合，可以用以下方式表示：
+打印不出来的一些字符，比如蜂鸣等符号，可以用以下方式表示：
 
 1. 使用字符的ASCII值 。
 2. 使用转义序列。
 3. 用十六进制形式表示字符常量 。（例如&，`char a = '\x026';`）
 
 无符号与有符号，unsigned char、signed char。（8位，-128~127,0~255）
+
+
 
 ### 布尔值
 
@@ -384,7 +397,7 @@ int main(){
 }
 ```
 
-strlen(str)函数：返回数组的有效存储个数，不包括空字符，该函数的原型在string.h头文件中声明，返回值为size_t（即unsigned int）。
+strlen(str)函数：返回数组的有效存储个数，不包括空字符（不是指空格，空格也是一个字符），该函数的原型在string.h头文件中声明，返回值为size_t（即unsigned int）。
 
 ```c
 #include <stdio.h>
@@ -428,8 +441,6 @@ int main(){
     return 0;
 }
 ```
-
-
 
 2、转换说明的修饰符：
 
@@ -517,6 +528,8 @@ int main(){
 
 ![](imgC/3.scanf.png)
 
+
+
 ### *修饰符
 
 对于printf，修饰符*可以充当标识变量：
@@ -551,6 +564,8 @@ int main(){
 }
 ```
 
+
+
 ## 类型转换
 
 类型转换规则——自动转换：
@@ -561,7 +576,7 @@ int main(){
 4. 赋值表达式中：计算的最终结果会被转换成被赋值变量的类型。   
 5. ~~函数传参时：char和short被转换成int， float被转换成double。~~
 
-强制类型转换：使用`(type)`。
+强制类型转换：使用`(type)`，比如`int num = (int)12.34;`。
 
 关于表达式：https://blog.csdn.net/astrotycoon/article/details/50857326
 

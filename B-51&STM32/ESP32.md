@@ -157,9 +157,9 @@ udp_socket.sendto(send_data.encode('utf-8'), dest_addr)
 
 Windows：ipconfig，查看无线局域网 IPv4 地址。
 
+# MQTT
 
-
-# MQTT服务器的搭建
+## MQTT服务器的搭建
 
 1、安装好docker。
 
@@ -170,9 +170,13 @@ Windows：ipconfig，查看无线局域网 IPv4 地址。
 
 3、登录mqtt后台管理页面：http://{ip}:18083，确认部署成功；默认账号：`admin`，默认密码：`public`；第一次登录会要你修改密码。
 
-4、MQTT服务端口默认是1883，注意要开放此端口。
+- 1883：MQTT 协议端口
+- 8084：MQTT/SSL 端口
+- 8083：MQTT/WebSocket 端口
+- 8080：HTTP API 端口
+- 18083：Dashboard 管理控制台端口
 
-5、测试——：
+4、测试——：
 
 - Windows下的MQTT客户端：[MQTTX: Cross-platform MQTT 5.0 Desktop Client](https://mqttx.app/)。
 - Windows下的MQTT服务端：https://github.com/emqx/emqx/releases/。（或者在云服务器安装了服务端）
