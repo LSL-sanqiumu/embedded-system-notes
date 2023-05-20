@@ -794,7 +794,7 @@ if(p1 > p2){
 
 ```c
 int* ptr;
-printf("%d",*ptr);  // 不要对未初始化的指针使用 * 来解引用
+printf("%d",*ptr);  // 不要对未初始化的指针使用 * 来解引用，会造成错误
 ```
 
 ## 指针数组
@@ -803,7 +803,7 @@ printf("%d",*ptr);  // 不要对未初始化的指针使用 * 来解引用
 
 ```c
 int* arr[10];  // 存储指向int类型的指针变量的数组
-arr[2] 与 *(arr + 2)等价：取得数组里存储的值
+			  // arr[2] 与 *(arr + 2)等价：取得数组里存储的值
 ```
 
 ## 指针的指针
@@ -918,7 +918,7 @@ char* test(void){
 #include <string.h>
 char* test(void){
     char* str;
-    str = (char*)malloc(100*sizeof(char));
+    str = (char*)malloc(100 * sizeof(char));
     strcpy_s(str,100,"string");
     return str;  
 }
