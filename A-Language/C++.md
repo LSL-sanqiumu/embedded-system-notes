@@ -1,4 +1,4 @@
-# C++
+# 基本知识
 
 ## 编译器
 
@@ -96,7 +96,7 @@ makefile 规定了一套编译规则，使用什么[编译器](https://www.zhihu
 > 来源：知乎
 > 著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
 
-# C++基础 
+# 基础知识
 
 ## 输入输出
 
@@ -549,16 +549,17 @@ constexpr int* ptr = nullptr;
 ```c++
 /* typedef */
 typedef double wages;
-typedef wages base, *p;   // 相当于typedef double base，*p：为double、double*再起名字
+// 为double、double*再起别名——base、p
+typedef wages base, *p;   
 ```
 
 类型别名指代复合类型或常量时，把它用于声明语句会出现意料之外的效果。（先跳过）
 
 ```c++
-typedef char* pstring;
+typedef char* pstring;   // 类型char*的别名为 pstring
 
-const pstring cstr = 0;   // const (char*) cstr = 0;
-const pstring* ps;        // const (char*) *cstr;    
+const pstring cstr = 0;   // const (char*) cstr = 0;   常量指针
+const pstring* ps;        // const (char*) *cstr;      指针cstr指向的是一个常量指针
 const char* cstr = 0;     // (const char*) cstr;     指向常量的指针
 ```
 
@@ -568,8 +569,8 @@ const char* cstr = 0;     // (const char*) cstr;     指向常量的指针
 
 ```c++
 /* using */
-using wages = double;
-using p = wages*;
+using wages = double;  // double 的别名 wages
+using p = wages*;      // double* 的别名 p
 ```
 
 
@@ -581,25 +582,33 @@ using p = wages*;
 ```c++
 auto item = v1 + v2;  //   item的类型由表达式决定，对象或者某种基本数据类型、复合数据类型
 auto i = 1, *p = &i;  //  整形和整形指针
-auto data = 1, num = 2.0;   // 错误，int、double，类型不一致
+auto data = 1, num = 2.0;   // 错误，int、double，类型不一致，一条声明语句只能有一个基本数据类型
 ```
 
 auto使用注意事项：
 
 1. 编译器推断处理的auto类型有时候可能会和初始值的类型不一致。
-2. 如果使用引用初始化变量，那么auto类型是引用所绑定的对象的类型。
-3. auto会忽略顶层const。
+2. 如果使用引用初始化变量，那么auto类型是引用所绑定的对象的类型，此时auto会忽略顶层const，底层const则会保留下来。
+
+```cpp
+const int ci = 12, &cr = ci;
+auto b = ci;  // 会忽略顶层const，此时b被推断为int
+auto b = cr;  // 会忽略顶层const，此时b被推断为int
+const auto c = cr;  // 推断后就是 const int
+```
+
+如果将引用的类型设置为auto，那么就会被推断为要绑定的对象的类型。
 
 
 
 #### decltype
 
-**decltype类型指示符：**选择并返回操作数据的类型
+**decltype类型说明符：**用于选择并返回操作数据的类型。（从表达式的类型推断出要定义的变量的类型）
 
 `decltype()`，括号内的仅用来确定最终数据类型，并不会执行。
 
 ```c++
-decltype(fun()) sum1 = xxx;   //  以函数fun的返回值类型作为sum的类型，实际并没有调用该函数
+decltype(fun()) sum1 = xxx;   //  函数fun的返回值类型就是sum变量的类型，实际并没有调用该函数
 decltype(i) sum2 = xxx;       //  decltype(i)的i是什么类型sum就是什么类型，（decltype(i)可以是引用）
 ```
 
@@ -607,10 +616,10 @@ decltype和引用：
 
 ```c++
 int i = 12, &ref = i, *p = &i;
-decltype(ref + 0) sum3 = xxx;   // 表达式结果是int
-decltype(*p) sum4 = xxx;        // 表达式的内容是解引用操作，因此sum是引用
+decltype(ref + 0) sum3 = xxx;   // 加法的结果是int，因此推断为 int
+decltype(*p) sum4 = xxx;        // 表达式的内容是解引用操作，因此推断为引用 int&
 
-decltype((i)) sum5 = xxx;       // 变量加了括号，得到的都将是引用
+decltype((i)) sum5 = xxx;       // 变量加了括号，得到的都将是引用  int&
 ```
 
 `decltype(variable)`和`decltype((variable))`：
@@ -623,19 +632,30 @@ decltype((i)) sum5 = xxx;       // 变量加了括号，得到的都将是引用
 1. 变量可以作为赋值语句左值的特殊表达式，会产生引用。
 2. 赋值操作也是一种会产生引用的表达式，引用类型以左值类型为准。
 
+```c++
+int a = 3, b =4;
+decltype(a) c = a;     // int 
+decltype(a = b) d = a; // int&
+```
+
 
 
 ### 自定义数据结构
 
 #### struct
 
-定义类：类可以定义在全局作用域或者函数块作用域中，或者头文件中。
+通过struct关键字定义类：类可以定义在全局作用域或者函数块作用域中，或者头文件中。
+
+定义类的基本语法格式：
 
 ```c++
 struct 类名 {
-    类体
-}; // 分号必须
-/* 示例 */
+    类数据成员
+};
+```
+
+```c++
+/* 示例：定义一个Sales_data类 */
 struct Sales_data {
 	std::string bookNo;       // 没有指定初始值将会默认初始化
 	unsigned units_sold = 0;  // 不能使用圆括号进行初始化
@@ -643,20 +663,24 @@ struct Sales_data {
 };
 ```
 
+定义结构体的同时创建类的对象：
+
 ```c++
 int main() {
-    // 声明结构体并创建对象
+    // 定义结构体并创建对象
 	struct Sales_data {
 		std::string bookNo;
 		unsigned units_sold = 0;
 		double revenue = 0;
 	} accum, trans, *salesptr;
-	std::cout << trans.revenue << std::endl; // 使用点操作符访问内部成员数据
+    // 使用点操作符访问内部成员数据或者设置成员数据
+	std::cout << trans.revenue << std::endl; 
 	return 0;
 }
-// 上面相当于：
+
+/* 上面相当于： */
 int main() {
-    // 声明结构体
+    // 定义结构体
 	struct Sales_data {
 		std::string bookNo;
 		unsigned units_sold = 0;
@@ -673,7 +697,7 @@ int main() {
 
 #### 头文件
 
-头文件：
+关于头文件：
 
 - 类通常定义在头文件中而不是函数体内。
 - 头文件通常包含的是只能被定义一次的实体。（例如：类、`const`和`constexpr`变量。）
@@ -681,12 +705,12 @@ int main() {
 
 预处理器：编译前执行的一段程序，确保头文件多次包含仍能正常工作。
 
-头文件保护符（2.3.2节，第四十八页）依赖于预处理变量，预处理变量即检查操作命令如下：
+为避免头文件的重复引用，头文件保护的两种机制，一种是`#pragma once`，另一种是通过如下指令设置预处理变量：
 
 1. `#define`：用于定义预处理变量。
 2. `#ifdef`：仅当变量已定义时为真。
 3. `#ifndef`：仅当变量未定义时为真。
-4. `#endif`：执行停止。\
+4. `#endif`：执行停止。
 
 示例——创建sales_data.h头文件：
 
@@ -708,21 +732,8 @@ struct Sales_data {
 
 注意事项：
 
-1. 预处理变量无视c++中关于作用域的规则。
-2. 预处理变量、头文件保护符必须保持唯一，通常做法是以头文件中类名字为保护符名称并且预处理变量名称是类名的全大写形式。
-3. 示例如上。
-
-## 运算符
-
-`*`：既用于声明指针，也用于解引用。
-
-`&`：既用于声明引用，也用于取地址。
-
-`::`：作用域运算符，用于作用域限定，其是运算符中等级最高的，按照其作用范围可将其分为全局作用域符、类作用域符、命名空间作用域符。（`A::B`表示作用域A中的名称B，A可以是名字空间、类、结构）
-
-- 全局作用域：如果作用域操作符左侧为空则默认在全局作用域请求数据。
-- 命名空间：其左侧为命名空间则用于指出使用命名空间中的哪个名字。
-- 类：其左侧为类则限定右侧为类中的成员，C++为了避免不同的类有名称相同的成员而采用作用域的方式进行区分。
+- 预处理变量无视c++中关于作用域的规则。
+- 预处理变量、头文件保护符必须保持唯一，通常做法是以头文件中类名字为保护符名称并且预处理变量名称是类名的全大写形式。
 
 
 
@@ -730,7 +741,9 @@ struct Sales_data {
 
 ### 命名空间的using声明
 
-> `using namespace::name;`   using声明，当使用name时将从命名空间namespace中获取它
+using声明的语法格式：`using namespace::name;`；当使用name时将从命名空间namespace中获取它。
+
+使用示例：
 
 ```c++
 using std::cout;   // 使用到cout时，将是std命名空间中的cout
@@ -744,27 +757,48 @@ int main() {
 
 注意：为避免始料未及的名字冲突，头文件中不应该使用using 声明。
 
+补充——命名空间的定义：
+
+```c++
+#include <iostream>
+#include <string>
+namespace my_space{
+    void say(std::string str){
+        std::cout << str << std::endl;
+    }
+}
+int main()
+{
+    my_space::say("wa,use my namespace");
+    return 0;
+}
+```
+
+
+
 ### string
 
-标准库类型string：可变字符。
+**标准库类型 string：**可变字符。`string` 在string头文件中，定义在命名空间std中。
 
 ```c++
 #include <string>
 using std::string;
 ```
 
+**string对象的定义和初始化：**
+
 | string对象初始化       | 说明                                          |
 | ---------------------- | --------------------------------------------- |
 | `string s1;`           | 默认初始化，一个空字符串                      |
-| `string s2(s1);`       | s2是s1的副本                                  |
+| `string s2(s1);`       | s2是s1的副本，即复制一份给s2                  |
 | `string s2 = s1;`      | 等价于s2(s1)，s2是s1的副本                    |
 | `string s3("value");`  | s3是字面值value的副本，字面值最后的空字符除外 |
 | `string s3 = "value";` | 等价于s3("value")，s3是字面值value的副本      |
 | `string s4(n, 'c');`   | 把s4初始化为连续n个字符c组成的串              |
 
-使用=号来初始化的方式成为拷贝初始化，其他的称为直接初始化。
+使用=号来初始化的方式称为拷贝初始化，其他的称为直接初始化。
 
-字符串操作说明：（os——输出流、is——输入流、string s）
+**字符串操作说明：**（os——输出流、is——输入流、string s）
 
 | string操作     | 说明                                                         |
 | -------------- | ------------------------------------------------------------ |
@@ -786,6 +820,8 @@ using std::string;
 2. 如果两个对象某些位置的字符不一致，那么就以第一对相异字符的比较为结果。
 
 注意：`size()`函数返回的是`string::size_type`类型的值，它是一个无符号整数值，**无符号类型的值与有符号的一个负值进行比较，这个负值会自动转换为一个比较大的无符号值。**
+
+示例：
 
 ```c++
 using std::string;
@@ -816,16 +852,19 @@ int main() {
 }
 ```
 
-字符串相加：每个+号两侧至少有一个是string对象，不能把字面量直接相加。（字符串字面值与string是不同的类型）
+**字符串相加：**每个+号两侧至少有一个是string对象，并且不能把字符串字面量直接相加。
 
 ```c++
 string s4 = "123456", s5 = "7890";
-string s6 = s4 + "," + s5;
-string s6 = "s4" + "," + s5;   // 报错 ：+不能添加两个指针
-string s6 = "s4" + ("," + s5); // 相当于string temp= "," + s5;  s6 =  "s4" + temp;
+string s6 = s4 + "," + s5;     // 正确
+string s6 = "s4" + "," + s5;   // 错误 ：不能把字面量直接相加
+string s6 = "s4" + ("," + s5); // 正确，相当于string temp= "," + s5;  s6 =  "s4" + temp;
+string s6 = s4 + "," + "world";// 正确，从左到右，保证了+号两侧至少一个是string对象
 ```
 
-string对象字符处理，字符判断与字符转换：（cctype头文件）
+为了与C兼容，C++中的字符串字面值并不是标准库string的对象，它们两个是不同的类型。
+
+**string对象字符处理，字符判断与字符转换：**（cctype头文件）
 
 | 处理函数      | 解释                                                         |
 | ------------- | ------------------------------------------------------------ |
@@ -845,11 +884,13 @@ string对象字符处理，字符判断与字符转换：（cctype头文件）
 
 关于C++版本的C标准库头文件：C语言中的头文件形如name.h，在C++中则命名为cname并去掉.h后缀。（方便区分从C中继承过来的头文件）
 
+C++11中基于范围的for语句：
+
 ```c++
 #include <iostream>
-#include <cstdlib>
+#include <cstdlib> // c继承过来的
 #include <string>
-#include <cctype>
+#include <cctype>  // c继承过来的
 using std::string;
 using std::cout;
 using std::cin;
@@ -873,7 +914,7 @@ int main() {
 }
 ```
 
-十进制转十六进制数：
+使用下标访问字符，示例——十进制转十六进制数：
 
 ```c++
 #include <iostream>
@@ -901,7 +942,7 @@ int main() {
 }
 ```
 
-小技巧，声明为引用类型可以避免对元素的拷贝，如下，如string特别大时可以节省大量时间。
+**小技巧，声明为引用类型可以避免对元素的拷贝，如下，如果string特别大时可以节省大量时间。**
 
 ```c++
 vector<string> text;
@@ -914,7 +955,7 @@ for(const auto &s: text){
 
 ### vector
 
-标准类型库vector：表示对象的集合，vector是一个类模板，编译器可以根据类模板实例化类。（vector也为称为容器）
+标准类型库vector：表示对象的集合，vector是一个类模板，编译器可以根据类模板实例化类。（vector也为称为容器，使用vector需要包含vector头文件）
 
 ```c++
 #include <string>
@@ -1097,8 +1138,6 @@ vector和string的迭代器支持的运算：
 1. 和整数的运算：iter+ n或iter - n、iter += n、iter -= n，表示向前或向后移动多少个位置。
 2. 迭代器之间的运算：iter1 - iter2，表示它们之间的距离，整数。
 3. 迭代器大小比较：>、<、>=、<=。
-
-
 
 
 
@@ -1350,6 +1389,16 @@ p = &arr[2];   // p指向二维数组的最后一个数组
 
 ### 运算符
 
+`*`：既用于声明指针，也用于解引用。
+
+`&`：既用于声明引用，也用于取地址。
+
+`::`：作用域运算符，用于作用域限定，其是运算符中等级最高的，按照其作用范围可将其分为全局作用域符、类作用域符、命名空间作用域符。（`A::B`表示作用域A中的名称B，A可以是名字空间、类、结构）
+
+- 全局作用域：如果作用域操作符左侧为空则默认在全局作用域请求数据。
+- 命名空间：其左侧为命名空间则用于指出使用命名空间中的哪个名字。
+- 类：其左侧为类则限定右侧为类中的成员，C++为了避免不同的类有名称相同的成员而采用作用域的方式进行区分。
+
 **算术运算符：**
 
 ![](imgC++/1.compute.png)
@@ -1400,7 +1449,7 @@ while(pbeg != v.end() && *pbeg >= 0){
 
 **成员访问运算符：**
 
-成员访问运算符有两种：点运算符`.`和箭头运算符`->`。（注意点运算符优先解引用符）
+成员访问运算符有两种：点运算符`.`和箭头运算符`->`。（注意点运算符优先于解引用符）
 
 ```c++
 string s = "keep", *p = &s;

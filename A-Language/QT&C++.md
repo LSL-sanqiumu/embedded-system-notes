@@ -224,7 +224,7 @@ connect(pushButton, SIGNAL(clicked()), MainWindow, SLOT(close()));
 
 创建完毕，在Design里面拖拽控件到窗体即可导入相关控件，还可以配置信号与槽、更改控件属性等，当编译时会自动生成相关文件——比如上面的ui_mainwindow.h文件。
 
-可视化UI设计的缺点：有些组件无法可视化添加到界面上。
+可视化UI设计的缺点：有些组件无法可视化添加到界面上，比如工具栏上就无法可视化添加ComboBox组件，只能通过纯代码来添加。
 
 
 
@@ -487,9 +487,66 @@ void MyDialog::setTextFontColor()
 
 ## 混合方式设计
 
-当然，可视化设计、代码化设计两种方式可以混用，毕竟可视化设计最终也是生成C++代码的（UI → C++代码）。
+可视化设计、代码化设计两种方式可以混用，毕竟可视化设计最终也是生成C++代码的（UI → C++代码）。
 
 尽量使用可视化UI设计，遇到可视化无法解决的才去使用纯代码方式去解决。
+
+以一个示例操作来展示混合方式设计的开发过程。
+
+### 1.项目创建
+
+创建一个QT Widgets Application，选择基类QMainWindow，新建的类的名称为MyMainWindow。
+
+![](imgQT/6.1混合方式设计.png)
+
+### 2.资源文件创建与导入
+
+在QT Creator里单击 File → New File or Project ... 菜单项，然后先在新建文件与项目对话框的Files and Classes 里选择QT，再在右边选项里选中QT Resource File，点击choose...后为资源文件命名，命名为res.qrc，之后 Next → Finish即可。
+
+上述操作完后，项目中会自动创建好一个Resources文件组，该组里有res.qrc节点。
+
+在res.qrc上点击右键，选择 “Open in Editor”，然后点击 Add Prefix 添加前缀`/images`，再点击 Add Files 添加资源文件（资源文件最好提前放于项目目录下），如下：
+
+![](imgQT/6.2资源文件.png)
+
+资源文件最重要的一个功能就是存储图片和图标。
+
+### 3.1UI设计—设计Action对象
+
+双击mymainwindow.ui进入UI设计器，界面中央下面的 Action Editor 就是用来设计Action的。如下图：
+
+![](imgQT/6.3Action.png)
+
+Action是Qt中单独引入的一个对象，对应QAction类。 Action表示一个独立的操作，是将界面上某个可以通过菜单、快捷键、toolBar按钮执行的同一个操作映射到同一个Action对象，由该对象通过信号触发实际的操作。（可以理解为动作按钮，点击后执行Action的槽函数）
+
+**所有用于菜单和工具栏设计的按钮都需要用Action来实现。**
+
+设计Action：点击新建，创建Action，示例如下
+
+![](imgQT/6.4剪切.png)
+
+Action各设置项的说明：
+
+- Text：Action的显示文字，该文字会作为菜单标题或工具栏按钮标题显示。若该标题后面有省略号，如“打开…”，则在工具栏按钮上显示时会自动忽略省略号，只显示“打开”。
+- Object name：该Action的objectName。应该遵循自己的命名法则，如以“act”开头表示这是一个Action。
+- ToolTip：这个文字内容是当鼠标在一个菜单项或工具栏按钮上短暂停留时出现的提示文字。
+- Icon：设置Action的图标，单击其右侧的按钮可以从资源文件里选择图标，或者直接选择图片文件作为图标。
+- Checkable：设置Action是否可以被复选，如果选中此选项，那么该Action就类似于QCheckbox可以改变其复选状态。
+- Shortcut：设置快捷键，将输入光标移动到Shortcut旁边的编辑框里，然后按下想要设置的快捷键即可，如“Ctrl+O”。
+
+### 3.2UI设计—设计菜单和工具栏
+
+示例项目的窗体类MyMainWindow继承QMainWindow，因此具有菜单栏、工具栏、状态栏。
+
+双击mymainwindow.ui进入UI设计器，“Type Here”处是菜单栏，菜单栏下方是工具栏，窗口最下方是状态栏：（下方没有工具栏，需要为窗口添加，在主窗口上单击右键选择Add Tool Bar即可）
+
+<img src="imgQT/6.4栏.png" alt="6.4栏" style="zoom: 67%;" />
+
+在菜单栏双击，输入菜单分组，名称，如“File”，然后回车，这样就创建了一个“File”菜单分组。
+
+将创建好的Action拖放到窗口的菜单栏，就会新建一个菜单项。
+
+将创建好的Action拖放到窗口的工具栏，就会新建一个工具栏按钮，通过设置工具栏的 toolButtonStyle 属性就可设置工具栏按钮的显示方式。
 
 
 
