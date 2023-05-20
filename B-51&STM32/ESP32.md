@@ -1,3 +1,7 @@
+# ESP32开发方式
+
+Arduino IDE开发方式、SDK开发方式、LUA开发方式、Micropython开发方式。
+
 # ESP32-C3-MINI1
 
 ## C3开发文档
@@ -181,11 +185,66 @@ Windows：ipconfig，查看无线局域网 IPv4 地址。
 - Windows下的MQTT客户端：[MQTTX: Cross-platform MQTT 5.0 Desktop Client](https://mqttx.app/)。
 - Windows下的MQTT服务端：https://github.com/emqx/emqx/releases/。（或者在云服务器安装了服务端）
 
-![](imgESP32/mqtt.png)
-
-
+![](imgESP32/1.mqtt.png)
 
 
 
 # ESP8266 01S
+
+## 文档
+
+[ESP8266文档中心 | 安信可科技 (ai-thinker.com)](https://docs.ai-thinker.com/esp8266/docs)
+
+- ESP-01S模块的IO0、RST、EN管脚上增加了上拉电阻。
+- 指示灯的管脚，由ESP-01的TXD0变成了ESP-01S的GPIO2。
+
+- 开发模式：AT指令控制和源代码API函数开发。
+- 工作模式：STA+AP 、STA、AP模式。
+- 模块分类：AT类（这种模块精简实用，只引出UART口）和IO类（除了引出UART还引出可用IO口）。
+
+![](imgESP32/4.esp8266.png)
+
+
+
+## 烧录MQTT
+
+MQTT固件烧录，硬件连接：
+
+- RXD、TXD：USB to TTL工具的TXD、RXD分别接上ESP8266 01S的RXD、TXD。
+- 3.3V：ESP8266 01S的3.3V单独供电（因为USB to TTL的3.3驱动能力不够）。
+- GND：USB to TTL、ESP8266 01S要共地。
+- IO0：ESP8266 01S的GPIO0也要接地。
+
+烧录工具：[烧录WiFi固件工具：ESP_DOWNLOAD_TOOL](https://docs.ai-thinker.com/开发工具2)
+
+AT固件下载：使用MQTT透传AT固件（固件号：1471），[AT固件汇总 | 安信可科技 (ai-thinker.com)](https://docs.ai-thinker.com/固件汇总)。
+
+连接好，打开flash_download_tool，选择esp8266：
+
+![](imgESP32/2.atDownload.png)
+
+1. 选择好下载的固件文件，烧录位置设置为0x00。
+2. 速度设置为40MHz，模式设置为DOUT。
+3. 波特率设置为115200。
+4. 选择好串口。
+5. 点击ERASE，然后拔出esp8266的电源线再接上。
+6. 点击START，开始烧录，烧录完成在绿色区域会显示FINISH。
+
+测试：
+
+1. 接线和上面一样，只不过IO0不需要接地，悬空即可。
+2. 下载安信可串口调试助手，[开发工具清单 | 安信可科技 (ai-thinker.com)](https://docs.ai-thinker.com/开发工具2)，打开助手。
+3. 发送AT，如下即表示已经烧录成功并正常执行：
+
+![](imgESP32/3.测试AT.png)
+
+
+
+
+
+
+
+
+
+
 
