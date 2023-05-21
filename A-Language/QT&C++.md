@@ -66,13 +66,13 @@ Qt Widgets Application项目的基本组成：
 
 ![](imgQT/1.界面应用程序.png)
 
-目录：
+目录说明：
 
 1. Headers：用于存放所有的头文件。
 2. Sources：用于存放项目所有C++源代码文件。
 3. Forms：用于存放所有窗口的界面文件。
 
-文件：
+文件说明：
 
 1. .pro文件：项目管理文件，用于存储项目设置的文件。
 2. main.cpp：程序入口。
@@ -80,19 +80,57 @@ Qt Widgets Application项目的基本组成：
 4. mainwindow.h：所设计的窗口类的头文件。
 5. mainwindow.cpp：是mainwindow.h里定义的类的实现文件；（在C++里，任何窗体或界面组件都是用类封装的，一个类一般有一个头文件(.h文件)和一个源程序文件(.cpp文件)，一个用于类定义（类定义及类成员的声明），一个用于类行为（功能函数）具体实现）
 
-当编译后，会根据每个窗体上的组件及其属性、信号与槽的关联等会自动生成的一个类的定义文件。上面只有一个主窗口，会生成一个类的定义文件ui_mainwindow.h，类名Ui_MainWindow。
-
 ![](imgQT/3.生成.png)
+
+使用可视化UI设计时，当编译后，会根据每个窗体上的组件及其属性、信号与槽的关联等会自动生成的一个类的定义文件——ui_xxx.h头文件。上面只有一个主窗口，因此只会生成一个类的定义文件ui_mainwindow.h，类名为Ui_MainWindow。
+
+可视化设计的界面的底层实现就是由ui_xxx.h头文件实现的，也就是通过 xxxx.ui → ui_xxx.h，生成了界面的底层代码（即通过可视化设计，生成了我们需要的界面的代码）。
 
 
 
 ### 运行机制
 
-通过分析各个窗体文件的内容及功能，就可以知道它们是如何一起工作来实现界面的创建与显示的。以上面图中创建的项目为例。
+通过分析各个窗体文件的内容及功能，就可以知道它们是如何一起工作来实现界面的创建与显示的。以上面图中创建的项目为例，通过mainwindow.ui生成了ui_mainwindow.h；mainwindow.cpp和mainwindow.h、main.cpp、ui_mainwindow.h之间是什么样的关系？
 
-**1、mainwindow.h和mainwindow.cpp：**
+**1、mainwindow.ui和ui_mainwindow.h：**
 
-mainwindow.h：窗体类头文件，创建项目时选的窗体基类是哪个，该头文件就会定义一个继承该基类的类；该文件内容如下：
+mainwindow.ui：用UI设计器可视化设计的界面都将由Qt自动解析，并以XML文件的形式保存下来，保存的文件名形式为xxxx.ui，这个文件也就是窗体界面的定义文件，其是一个XML文件，里面定义了窗口上的所有组件的属性设置、布局，及其信号与槽函数的关联等。当使用Qt的UI设计器时，只需在UI设计器里进行可视化设计即可，不用管mainwindow.ui文件是怎么生成的。
+
+ui_mainwindow.h：是对mainwindow.ui文件编译后生成的一个文件，通过UI设计器更改界面时，当再次编译后这个文件也会随之改变。它主要做以下工作：
+
+1. 定义了一个Ui_MainWindow类，该类用于封装可视化设计的界面。
+
+2. 自动生成了界面各个组件的类成员变量定义，在Ui_MainWindow类的public部分为窗口界面上每个组件都定义了一个指针变量。
+   （指针变量的名称就是在UI设计器里设置的objectName）
+
+3. 定义并实现了setupUi()函数，这个函数的实现分为三部分：
+
+   一是：根据可视化设计的界面内容，用C++代码创建了界面上各个组件，并设置了各个组件的位置、大小、文字内容、字体等属性。
+
+   二是：调用了函数retranslateUi(Widget)  ，用来设置界面各组件的文字内容属性，如标签的文字、按键的文字、窗体的标题等。将界面上的文字设置的内容独立出来作为一个函数retranslateUi()，在设计多语言界面时会用到这个函数。  
+
+   三是：设置了信号与槽的关联。  
+
+   **因此在MainWindow的构造函数里调用 ui->setupUI(this)，就实现了窗体上组件的创建、属性设置、信号与槽的关联。**  
+
+4. 定义了`namespace Ui`，并在命名空间中定义了一个继承 Ui_MainWindow类的类——MainWindow。
+
+信号与槽的关联的实现：（详细内容见*信号与槽*）
+
+```c++
+/* 信号与槽的关联 */
+// 将pushButton按钮的clicked()信号与窗体MainWindow的槽函数close()关联起来
+// 当点击按钮时，就会执行MainWindow的close()
+QObject::connect(pushButton, SIGNAL(clicked()), MainWindow, SLOT(close()));
+// 设置槽函数的关联方式，用于将UI设计器自动生成的组件信号的槽函数与组件信号相关联
+QMetaObject::connectSlotsByName(MainWindow);
+```
+
+
+
+**2、mainwindow.h和mainwindow.cpp：**头文件用于声明和定义，源代码文件负责具体的实现。
+
+mainwindow.h：窗体类头文件，创建项目时选的窗体基类是哪个，该头文件就会定义一个继承于该基类的类。
 
 ```c++
 #ifndef MAINWINDOW_H
@@ -100,7 +138,7 @@ mainwindow.h：窗体类头文件，创建项目时选的窗体基类是哪个�
 
 #include <QMainWindow>
 /*  声明了一个命名空间——Ui，里面包含一个类MainWindow，
-	注意这个类是ui_mainwindow.h文件里定义的类 
+	注意这个类是ui_mainwindow.h文件里定义了的类 
 */
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -117,16 +155,18 @@ public:
 
 private:
     /*
-    用前面声明的namespace Ui里的Widget类定义的，
+    用前面声明的namespace Ui里的MainWindow类定义的，
     所以指针ui是指向可视化设计的界面，
-    后面会看到要访问界面上的组件，都需要通过这个指针ui
+    要访问界面上的组件，都需要通过这个指针 → ui
     */
     Ui::MainWindow *ui; 
 };
 #endif // MAINWINDOW_H
 ```
 
-mainwindow.cpp：用于mainwindow.h中定义的窗体类的功能的具体实现。
+可以看出该文件中的类有ui_mainwindow.h中定义的那个类类型成员。
+
+mainwindow.cpp：该文件中是用于实现mainwindow.h中定义的窗体类的功能。其内容如下，可以看出实现了其头文件中声明的构造函数与析构函数：
 
 ```c++
 #include "mainwindow.h"
@@ -151,37 +191,14 @@ MainWindow::~MainWindow()
 }
 ```
 
-总结：Ui::MainWindow类 是用于描述可视化设计的窗体的一个类，用于描述整个窗体；而  MainWindow类 则是对可视化设计窗体的功能延伸的描述，是功能描述的集合。（一个用于窗体描述和基本功能实现，一个用于功能拓展）
+MainWindow中的构造函数，调用了Ui_MainWindow中的构造函数，那也就是说当实例化MainWindow类的对象时，也就执行了Ui_MainWindow中的构造函数，就实现了窗体的初始化与生成。
 
-Ui::MainWindow类的行为如下。
 
-**2、mainwindow.ui和ui_mainwindow.h：**
 
-mainwindow.ui：
+### 总结
 
-- 窗体界面定义文件，是一个XML文件，定义了窗口上的所有组件的属性设置、布局，及其信号与槽函数的关联等。
-- 用UI设计器可视化设计的界面都由Qt自动解析，并以XML文件的形式保存下来。
-- 在设计界面时，只需在UI设计器里进行可视化设计即可，而不用管widget.ui文件是怎么生成的  。
-
-ui_mainwindow.h：对mainwindow.ui文件编译后生成的一个文件，通过UI设计器更改界面，编译后这个文件也会随之改变。它主要做以下工作：
-
-1. 定义了一个Ui_MainWindow类，用于封装可视化设计的界面。
-2. 自动生成了界面各个组件的类成员变量定义，在public部分为窗口界面上每个组件定义了一个指针变量，指针变量的名称就是在UI设计器里设置的objectName。
-3. 定义并实现了setupUi()函数，这个函数实现分为三部分：
-   - 1.根据可视化设计的界面内容，用C++代码创建界面上各个组件，并设置各个组件的位置、大小、文字内容、字体等属性。
-   - 2.调用了函数retranslateUi(Widget)  ，用来设置界面各组件的文字内容属性，如标签的文字、按键的文字、窗体的标题等。将界面上的文字设置的内容独立出来作为一个函数retranslateUi()，在设计多语言界面时会用到这个函数。  
-   - 3.设置信号与槽的关联。  
-   - 因此在MainWindow的构造函数里调用 ui->setupUI(this)，就实现了窗体上组件的创建、属性设置、信号与槽的关联。  
-4. 定义namespace Ui，并定义了一个从Ui_MainWindow继承的类MainWindow。
-
-```c++
-/* 信号与槽的关联 */
-// 将pushButton按钮的clicked()信号与窗体MainWindow的槽函数close()关联起来
-// 当点击按钮时，就会执行MainWindow的close()
-QObject::connect(pushButton, SIGNAL(clicked()), MainWindow, SLOT(close()));
-// 设置槽函数的关联方式，用于将UI设计器自动生成的组件信号的槽函数与组件信号相关联
-QMetaObject::connectSlotsByName(MainWindow);
-```
+- Ui::MainWindow类 是用于描述可视化设计的窗体的一个类，该类在通过mainwindow.ui生成的ui_mainwindow.h头文件中，用于描述整个窗体，并且提供构造函数用于初始化并生成窗体。
+- 而  MainWindow类 则是对可视化设计窗体的功能延伸的描述，是功能描述的集合。（一个用于窗体描述和窗体初始化与生成的实现，一个用于基于窗体的功能拓展）
 
 
 
@@ -189,13 +206,16 @@ QMetaObject::connectSlotsByName(MainWindow);
 
 信号（Signal），也就是事件。槽（Slot），也就是事件的响应函数，与普通函数的区别在于槽函数可以与信号关联，当信号被触发，槽函数就会被执行。
 
-**信号与槽的关联通过`QObject::connect()`函数实现：**（关联操作由UI Designer自动生成）
+**信号与槽的关联通过`QObject::connect()`函数实现：**（关联操作可由UI Designer自动生成）
 
 ```c++
 /** 
 	QObject::connect()基本格式：QObject::connect(发送信号的对象，SIGNAL(信号)，接收信号的对象，SLOT(槽函数))
 **/
 QObject::connect(sender, SIGNAL(signal()),receiver, SLOT(slot()));
+```
+
+```c++
 // 关联示例：按钮的点击事件，触发窗体的close()执行
 QObject::connect(pushButton, SIGNAL(clicked()), MainWindow, SLOT(close()));
 // QObject是所有类的基类，connect()是QObject的一个静态函数，因此可以省略QObject
@@ -203,6 +223,14 @@ connect(pushButton, SIGNAL(clicked()), MainWindow, SLOT(close()));
 ```
 
 信号，可以看成是一个特殊的函数；槽函数：与信号关联后，当信号被触发时执行的函数。
+
+**通过UI设计器设置信号与槽：**
+
+![](imgQT/3.信号与槽.png)
+
+发送者发送信号给接收者，然后接收者执行相应槽函数。
+
+Sender的Signal被触发就会往Receiver发送信号，Receiver接收到信号就执行Slot。
 
 **信号与槽的使用规则：**
 
@@ -511,6 +539,8 @@ void MyDialog::setTextFontColor()
 
 资源文件最重要的一个功能就是存储图片和图标。
 
+将images目录下的图标都添加进去，为后面的Action做准备。
+
 ### 3.1UI设计—设计Action对象
 
 双击mymainwindow.ui进入UI设计器，界面中央下面的 Action Editor 就是用来设计Action的。如下图：
@@ -534,7 +564,17 @@ Action各设置项的说明：
 - Checkable：设置Action是否可以被复选，如果选中此选项，那么该Action就类似于QCheckbox可以改变其复选状态。
 - Shortcut：设置快捷键，将输入光标移动到Shortcut旁边的编辑框里，然后按下想要设置的快捷键即可，如“Ctrl+O”。
 
-### 3.2UI设计—设计菜单和工具栏
+需要建立的Action：
+
+![](imgQT/6.5建立的action.png)
+
+### 3.2UI设计—加入QTextEdit组件
+
+找到TextEdit，拖入主窗口。
+
+
+
+### 3.3UI设计—菜单栏
 
 示例项目的窗体类MyMainWindow继承QMainWindow，因此具有菜单栏、工具栏、状态栏。
 
@@ -542,11 +582,206 @@ Action各设置项的说明：
 
 <img src="imgQT/6.4栏.png" alt="6.4栏" style="zoom: 67%;" />
 
-在菜单栏双击，输入菜单分组，名称，如“File”，然后回车，这样就创建了一个“File”菜单分组。
+- 在菜单栏双击，输入菜单分组，名称，如“File”，然后回车，这样就创建了一个“File”菜单分组。
 
-将创建好的Action拖放到窗口的菜单栏，就会新建一个菜单项。
+- 将创建好的Action拖放到窗口的菜单栏，就会新建一个菜单项。
 
-将创建好的Action拖放到窗口的工具栏，就会新建一个工具栏按钮，通过设置工具栏的 toolButtonStyle 属性就可设置工具栏按钮的显示方式。
+- 将创建好的Action拖放到窗口的工具栏，就会新建一个工具栏按钮，通过设置工具栏的 toolButtonStyle 属性就可设置工具栏按钮的显示方式。
+
+为窗口添加ToolBar后，按下图设计好，拖放Action到菜单栏的选项里：
+
+![](imgQT/6.6菜单栏.png)
+
+### 3.4UI设计—工具栏
+
+SpinBox组件、FontComboBox组件无法通过可视化方式将其添加到工具栏上，需要通过编写代码实现。步骤如下：
+
+1、在mymainwindow.h文件中为MyMainWindow添加变量和函数定义：
+
+```c++
+/* 添加头文件 */
+#include    <QLabel>
+#include    <QProgressBar>
+#include    <QSpinBox>
+#include    <QFontComboBox>
+/* 添加私有变量和函数 */
+QLabel      *fLabCurFile;      // 状态栏里显示当前文件的Label
+QProgressBar    *progressBar1; // 状态栏上的进度条
+QSpinBox        *spinFontSize; // 字体大小
+QFontComboBox   *comboFont;    // 字体名称
+void    iniUI();               // 代码实现UI初始化
+```
+
+2、在mymainwindow.cpp文件中实现`iniUI()`函数，创建并设置好组件属性后添加到想要添加到的地方：
+
+```c++
+void MyMainWindow::iniUI()
+{
+    /* 状态栏上添加组件 */
+    // 创建并设置好QLabel组件
+    fLabCurFile = new QLabel;
+    fLabCurFile->setMinimumWidth(150);
+    fLabCurFile->setText("当前文件：");
+    // 将QLabel组件添加到状态栏中
+    ui->statusBar->addWidget(fLabCurFile);
+    // QProgressBar组件的创建与设置
+    progressBar1 = new QProgressBar;
+    progressBar1->setMaximumWidth(200);
+    progressBar1->setMinimum(5);
+    progressBar1->setMaximum(50);
+    progressBar1->setValue(ui->textEdit->font().pointSize());
+    // 将QProgressBar组件添加到状态栏中
+    ui->statusBar->addWidget(progressBar1);
+
+    /* 工具栏上添加组件 */
+    // QSpinBox组件的创建与设置
+    spinFontSize = new QSpinBox;
+    spinFontSize->setMinimum(5);
+    spinFontSize->setMaximum(50);
+    spinFontSize->setValue(ui->textEdit->font().pointSize());
+    spinFontSize->setMinimumWidth(50);
+    // 将QSpinBox组件添加到工具栏中
+    ui->toolBar->addWidget(new QLabel("字体大小"));
+    ui->toolBar->addWidget(spinFontSize);
+    ui->toolBar->addSeparator();
+    ui->toolBar->addWidget(new QLabel("字体"));
+    // QFontComboBox组件的创建与设置
+    comboFont = new QFontComboBox;
+    comboFont->setMinimumWidth(150);
+    // 将QFontComboBox组件添加到工具栏中
+    ui->toolBar->addWidget(comboFont);
+
+    setCentralWidget(ui->textEdit); // 将textEdit设置为中心组件，自动填充整个工作区
+}
+```
+
+3、在mymainwindow.cpp文件中实现的构造函数中调用`iniUI()`函数：
+
+```c++
+MyMainWindow::MyMainWindow(QWidget *parent)
+    : QMainWindow(parent)
+    , ui(new Ui::MyMainWindow)
+{
+    ui->setupUi(this);
+    iniUI();
+}
+```
+
+`ui->setupUi(this)`实现的是可视化设计的界面的创建，` iniUI()`实现的是在可视化创建的界面上添加其他组件。因此` iniUI()`必须在最后调用。
+
+### 4.功能实现—Action的功能
+
+编辑菜单项里有剪切、复制、清除这三个Action，对应的功能可通过QTextEdit类的槽函数实现。能通过原有槽函数实现的功能都通过原有的槽函数实现，如下：（粘贴、剪切、复制、关闭、清除）
+
+![](imgQT/6.7功能实现.png)
+
+triggered()或triggered(bool)表示单击时发射信号。
+
+格式菜单项里有粗体、斜体、下划线这三个Action，可通过生成槽函数来自己实现，在Action Editor，选中一个Action再点击鼠标右键，“go to slot”，使用triggered(bool)，点击OK后就会转到槽函数实现处了：
+
+![](imgQT/6.8功能实现.png)
+
+加粗功能实现：（其他的粗体、斜体功能略，本例只用于了解混合方式开发）
+
+```c++
+void MyMainWindow::on_actFontBold_triggered(bool checked)
+{
+    QTextCharFormat fmt;
+    fmt = ui->textEdit->currentCharFormat();
+    if(checked){
+        fmt.setFontWeight(QFont::Bold);
+    }else{
+        fmt.setFontWeight(QFont::Normal);
+    }
+    ui->textEdit->mergeCurrentCharFormat(fmt);
+}
+```
+
+功能拓展：文本框中字体变化时，也会影响Action的enabled和checked属性的更新，使用到QTextEdit的两个信号——copyAvailable(bool b)、selectionChanged()。
+
+```c++
+void MyMainWindow::on_textEdit_copyAvailable(bool b)
+{
+    ui->actCut->setEnabled(b);
+    ui->actCopy->setEnabled(b);
+    ui->actPaste->setEnabled(ui->textEdit->canPaste());
+}
+
+void MyMainWindow::on_textEdit_selectionChanged()
+{
+    QTextCharFormat fmt;
+    fmt = ui->textEdit->currentCharFormat();
+    ui->actFontItalic->setChecked(fmt.fontItalic());
+    ui->actFontBold->setChecked(fmt.font().bold());
+    ui->actFontUnder->setChecked(fmt.fontUnderline());
+}
+```
+
+### 5.手动创建信号与槽
+
+工具栏和菜单栏上的组件是通过代码方式添加上去的，也需要通过手动代码的方式来实现信号与槽。步骤如下：
+
+1、在mymainwindow.h文件中为MyMainWindow类定义槽函数和用于进行信号与槽关联的函数：
+
+```c
+/* 在private slots处加上这两个函数 */
+void on_spinBoxFontSize_valueChanged(int aFontSize);         // 改变字体大小
+void on_comboFont_currentIndexChanged(const QString &arg1); // 选择字体
+/* 在private处加上这个函数 */
+void iniSignalSlots();  // 实现信号与槽的关联的函数
+```
+
+2、在mymainwindow.cpp文件中实现上述三个函数：
+
+```c++
+void MyMainWindow::on_spinBoxFontSize_valueChanged(int aFontSize)
+{
+    QTextCharFormat fmt;
+    fmt.setFontPointSize(aFontSize);
+    ui->textEdit->mergeCurrentCharFormat(fmt);
+    progressBar1->setValue(aFontSize);
+}
+void MyMainWindow::on_comboFont_currentIndexChanged(const QString &arg1)
+{
+    QTextCharFormat fmt;
+    fmt.setFontFamily(arg1);
+    ui->textEdit->mergeCurrentCharFormat(fmt);
+}
+void MyMainWindow::iniSignalSlots()
+{
+    connect(spinFontSize,SIGNAL(valueChanged(int)),
+            this,SLOT(on_spinBoxFontSize_valueChanged(int)));
+    connect(comboFont,SIGNAL(currentIndexChanged(const QString &)),
+            this,SLOT(on_comboFont_currentIndexChanged(const QString &)));
+}
+```
+
+3、在mymainwindow.cpp文件中实现的构造函数中调用`iniSignalSlots()`函数：
+
+```c++
+MyMainWindow::MyMainWindow(QWidget *parent)
+    : QMainWindow(parent)
+    , ui(new Ui::MyMainWindow)
+{
+    ui->setupUi(this);
+    iniUI();
+    iniSignalSlots();
+}
+```
+
+### 6.为应用程序设置图标
+
+为项目编译后的可执行文件设置自己想要的图标，只需两步：
+
+1. 将.ico后缀的图片文件复制到源程序目录下。
+
+2. 在项目配置文件（.pro文件）里用RC_ICONS设置图标文件即可。
+
+   ```
+   RC_ICONS = favicon.ico
+   ```
+
+
 
 
 
