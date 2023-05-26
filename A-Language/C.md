@@ -998,7 +998,7 @@ int process(int (*p)(int,int),int x, int y){
 
 ## void*与NULL
 
-`void*`，是一个通用指针，如何类型的指针都可以给 `void*` 类型的指针赋值。
+`void*`，是一个通用指针，任何类型的指针都可以给 `void*` 类型的指针赋值。
 
 NULL，空指针，内存编号`0x00000000`（32位平台）、`0x0000000000000000`（64位平台），常用于指针初始化（用0也是一样的）。
 
@@ -1427,10 +1427,10 @@ void main(){
     struct book gift = {.title="《QT 开发指南》",.value=12};
     // 使用已定义的来初始化，是整体拷贝
     struct book g = gift;
-    struct book power;
     /* 这样必须强制转换，因为{}也可以用来初始化数组 */
+    struct book power;
     power =  (struct book){"知识就是力量","培根",999};
-    strcpy_s(s.name,20,"你的名字");
+
     printf("%s\n",surprise.title);
     printf("%s\n",gift.title);
     printf("%s\n",power.title);
@@ -1447,13 +1447,13 @@ void main(){
     }s;
     // 初始化局部结构体
     s.age = 12;
-    // 数组名是常量，不能直接s.name=来进行赋值
+    // 数组名是常量，不能直接s.name=来进行赋值，需要通过strcpy_s()
     strcpy_s(s.name,20,"你的名字");
     printf("%s\n",s.name);
 }
 ```
 
-2、伸缩性数组成员：C99新增了一个特性- 伸缩型数组成员（flexible array member） ，该数组不会立即存在。  
+2、伸缩性数组成员：C99新增了一个特性 —— 伸缩型数组成员（flexible array member） ，该数组不会立即存在。  
 
 带伸缩型数组成员的结构确实有一些特殊的处理要求。 第一， 不能用结构进行赋值或拷贝；第二， 不要以按值方式把这种结构传递给结构；第三， 不要使用带伸缩型数组成员的结构作为数组成员或另一个结构的成员  。  
 
