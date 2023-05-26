@@ -240,9 +240,11 @@ AT固件下载：使用MQTT透传AT固件（固件号：1471），[AT固件汇�
 
 
 
+## DHT11+01S
 
+DHT11的DATA连接01S的GPIO2。
 
-
+![](imgESP32/5.DHT11.png)
 
 
 
