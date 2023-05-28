@@ -187,6 +187,76 @@ Windows：ipconfig，查看无线局域网 IPv4 地址。
 
 ![](imgESP32/1.mqtt.png)
 
+## Web请求MQTT数据
+
+通过ws协议请求MQTT服务器数据：
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CONNECT-MQTT-DEMO</title>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.js"></script>
+</head>
+<body>
+    <div></div>
+    <script>
+        // 连接选项
+        const options = {
+            clean: true, // true: 清除会话, false: 保留会话
+            connectTimeout: 4000, // 超时时间
+            // 认证信息
+            clientId: 'test',	//客户端ID
+            username: 'admin', //连接用户名
+            password: 'liangMQTT19990903.',//连接密码，默认为public,新版本登录后台界面会让你修改密码
+            // 心跳时间
+            keepalive: 60,
+        }
+    
+        // 连接字符串, 通过协议指定使用的连接方式
+        const connectUrl = 'ws://175.178.181.190:8083/mqtt' //连接服务端地址，注意查看ws协议对应的端口号
+        const client = mqtt.connect(connectUrl, options)
+    
+        client.on('connect', () => {
+            console.log('连接成功')
+            // 订阅多个主题
+            client.subscribe(
+                ['tourist_enter', 'message_arrived'], //主题
+                { qos: 1 },  
+                (err) => {
+                    console.log(err || '订阅成功')
+                },
+            );
+            // 发布消息：如果需要在发布消息到MQTT服务器，就从这里设置
+            client.publish('tourist_enter', 'Topic-tourist_enter:Hello EMQ X,我连接上了', 
+            (err) => {
+                console.log(err || '发布成功')
+            })
+        })
+        //失败重连
+        client.on('reconnect', (error) => {
+            console.log('正在重连:', error)
+        })
+        //连接失败
+        client.on('error', (error) => {
+            console.log('连接失败:', error)
+        })
+        //接收消息：topic为订阅的主题名称，message为接收到的该主题的消息
+        //上面设置订阅了tourist_enter和message_arrived，到这两个主题有消息发布，
+        //这里就接收到这两个数据
+        client.on('message', (topic, message) => {
+            console.log('收到消息：', topic, message.toString());
+            var d = document.querySelectorAll('div');
+            d[0].innerHTML = message.toString();
+        })    
+    </script>    
+</body>
+</html>
+```
+
 
 
 # ESP8266 01S
@@ -206,7 +276,9 @@ Windows：ipconfig，查看无线局域网 IPv4 地址。
 
 
 
-## 烧录MQTT
+## MQTT
+
+### 烧录MQTT
 
 MQTT固件烧录，硬件连接：
 
@@ -218,6 +290,8 @@ MQTT固件烧录，硬件连接：
 烧录工具：[烧录WiFi固件工具：ESP_DOWNLOAD_TOOL](https://docs.ai-thinker.com/开发工具2)
 
 AT固件下载：使用MQTT透传AT固件（固件号：1471），[AT固件汇总 | 安信可科技 (ai-thinker.com)](https://docs.ai-thinker.com/固件汇总)。
+
+AT固件说明文档：[AT 命令集 — ESP-AT 用户指南 文档 (espressif.com)](https://docs.espressif.com/projects/esp-at/zh_CN/release-v2.2.0.0_esp8266/AT_Command_Set/index.html)
 
 连接好，打开flash_download_tool，选择esp8266：
 
@@ -238,11 +312,15 @@ AT固件下载：使用MQTT透传AT固件（固件号：1471），[AT固件汇�
 
 ![](imgESP32/3.测试AT.png)
 
+### 使用MQTT
+
+[AT 命令集 — ESP-AT 用户指南 文档 (espressif.com)](https://docs.espressif.com/projects/esp-at/zh_CN/release-v2.2.0.0_esp8266/AT_Command_Set/index.html)
+
 
 
 ## DHT11+01S
 
-DHT11的DATA连接01S的GPIO2。
+DHT11的DATA连接01S的GPIO2。通信：根据DHT11的产品说明手册来。
 
 ![](imgESP32/5.DHT11.png)
 

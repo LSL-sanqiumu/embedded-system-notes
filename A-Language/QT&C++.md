@@ -1,6 +1,8 @@
+# 建议
+
 1. 第一阶段：了解控件的功能、属性等特性，包括且不至于QWidget、QLabel、QPushButton、QLayout、QLineEdit、QTextEdit等（Qt设计师的里可见的所有控件）
 2. 第二阶段：熟练掌握信号槽signal/slot的机制，了解每个控件的信号和参数，能自定义信号。最后要能实现父子、兄弟控件之间的信号互传、实现跨多层控件信号互传。也要会自定义注册信号槽的参数类型
-3. 第三阶段：布局QLayout的使用（垂直布局QVBoxLayout、水平布局QHBoxLayout、栅格布局QGridLayout）。必须要能够实现简单的窗口控件自适应。一般到这一步，[开发者](https://www.zhihu.com/search?q=开发者&search_source=Entity&hybrid_search_source=Entity&hybrid_search_extra={"sourceType"%3A"answer"%2C"sourceId"%3A2337838976})的客户端布局设计风格就会固定下来，每个人对于布局的理解和实现都会出现巨大的差异。**这一阶段是菜鸟进阶的关键，拿到一个原型图后，要能立马对原型进行拆解，从底到顶进行控件组合，[垂直水平](https://www.zhihu.com/search?q=垂直水平&search_source=Entity&hybrid_search_source=Entity&hybrid_search_extra={"sourceType"%3A"answer"%2C"sourceId"%3A2337838976})布局的使用，父子、兄弟控件的摆放，决定了一个Qt研发者的基础。**
+3. 第三阶段：布局QLayout的使用（垂直布局QVBoxLayout、水平布局QHBoxLayout、栅格布局QGridLayout）。必须要能够实现简单的窗口控件自适应。一般到这一步，开发者的客户端布局设计风格就会固定下来，每个人对于布局的理解和实现都会出现巨大的差异。**这一阶段是菜鸟进阶的关键，拿到一个原型图后，要能立马对原型进行拆解，从底到顶进行控件组合，垂直水平布局的使用，父子、兄弟控件的摆放，决定了一个Qt研发者的基础。**
 4. 第四阶段：事件机制，掌握各种事件函数的override，掌握事件筛选器eventFilter。知道重写事件函数和注册事件筛选器的区别和使用场景。
 5. 第五阶段：设计师布局和代码布局的复合使用，很多场景下，光靠设计师拖拽控件是无法实现的，必须要在代码中动态创建控件。此时是需要综合以上四个阶段的所有知识点。
 6. 第六阶段：复杂控件的自定义实现，将多个原生控件组合成新的控件，实现新的功能，封装接口和信号
@@ -821,15 +823,16 @@ MyMainWindow::MyMainWindow(QWidget *parent)
 
 # QT类库
 
->大致浏览一遍，后续再仔细看看，先把QT玩起来
-
 Qt是用C++编写的跨平台开发类库，引入了元对象系统、信号与槽、对象属性等特性。
 
-元对象编辑器（Meta-Object Compiler，MOC），一个预处理器，源程序被编译器会先将信号、槽、对象属性等Qt特性转为标准C++兼容的形式，然后再由标准C++编译器进行编译。因此，在使用信号与槽机制的类里必须添加一个 Q_OBJECT 宏，添加了这个宏，MOC才能对类里的信号与槽的代码进行预处理。
+元对象编辑器（Meta-Object Compiler，MOC）：
 
-元对象系统实现了信号与槽机制、属性系统、动态类型转换等拓展特性。
+- 一个预处理器，源程序被编译器会先将信号、槽、对象属性等Qt特性转为标准C++兼容的形式，然后再由标准C++编译器进行编译。因此，在使用信号与槽机制的类里必须添加一个 Q_OBJECT 宏，添加了这个宏，MOC才能对类里的信号与槽的代码进行预处理。
+- 元对象系统实现了信号与槽机制、属性系统、动态类型转换等拓展特性。
 
-## 元对象系统
+## QT特性
+
+### 元对象系统
 
 元对象系统由以下三个基础组成。 
 
@@ -839,25 +842,190 @@ Qt是用C++编写的跨平台开发类库，引入了元对象系统、信号与
 
 构建项目时，MOC工具读取C++源文件，当它发现类的定义里有Q_OBJECT宏时，它就会为这个类生成另外一个包含有元对象支持代码的 C++源文件，这个生成的源文件连同类的实现文 件一起被编译和连接。
 
-## 属性系统
+元对象系统提供的一些功能函数：
 
-Qt提供了Q_PROPERTY()宏来定义属性。
-
-
-
-## 信号与槽
-
-
+- `QObject::metaObject()`：返回类关联的元对象。
+- `QMeta::newInstance()`：创建类的新实例。
+- `QObject::inherits(const char* className)`：用于判断一个对象是否为className类或者QObject类的子类的实例。
+- `QObject::tr()`和`QObject::trUtf8()`：用于多语言界面设计。
+- `QObject::setProperty()`和`QObject::property()`：设置属性或获取属性值。
 
 
 
+### 属性系统
+
+1、Qt提供了Q_PROPERTY()宏来定义属性。
+
+2、属性使用：提供`QObject::setProperty()`和`QObject::property()`设置、读取属性值。
+
+3、动态属性：`QObject::setProperty()`函数可以在运行时为类定义一个新属性。
+
+4、类附加信息：宏Q_CLASSINFO()，可以为类元对象定义“名称——值”信息。
 
 
 
+### 信号与槽
+
+信号与槽机制是对象间进行通信的机制，与C++Builder中的“事件——响应”类似，但比CB的更加灵活。
+
+信号与槽相对于回调函数的执行速度慢一些，但比回调函数灵活得多。
+
+**信号与槽的特定和用法的补充**
+
+1、connect()函数的不同参数形式：
+
+a.函数原型
+
+```c++
+QMetaObject::Connection QObject::connect(const QObject *sender, const char *signal, const QObject *receiver, const char *method,Qt::ConnectionType type = Qt::AutoConnection)
+```
+
+使用句法：
+
+```c++
+// 使用宏SIGNAL()、SLOT()来指定信号和槽函数
+connect(sender, SIGNAL(signal()), receiver,SLOT(slot()));
+```
+
+使用示例：
+
+```c++
+// 信号或槽函数带参数，需要注明参数类型
+connect(spinNum, SIGNAL(valueChanged (int)),this, SLOT(updateStatus(int));
+```
+
+b.函数原型：
+
+```c++
+// 通过函数指针形式进行关联
+QMetaObject::Connection QObject::connect(const QObject *sender, const QMetaMethod &signal, const QObject *receiver, const QMetaMethod &method,Qt::ConnectionType type = Qt::AutoConnection)
+```
+
+使用场景：信号和槽函数唯一，没有不同参数的其他同名信号和槽。（使用时不用注明信号和槽的参数类型，对于参数较多的情况下使用这个函数可以更加简洁）
+
+使用示例：
+
+```c++
+// QLineEdit只有一个textChanged信号，widget只有一个on_textChanged信号
+connect(lineEdit, &QLineEdit::textChanged, this,&widget::on_textChanged);
+```
+
+c.两个connect()函数中的最后一个参数——Qt::ConnectionType的说明：
+
+- 枚举类型Qt::ConnectionType用于表示信号与槽之间通过何种方式进行关联。
+- Qt::AutoConnection：默认值是Qt::AutoConnection，表示信号发射时自动确定关联方式，此时信号的接收者和发送者在同一线程就使用Qt::DirectConnection方式，不是则用Qt::QueuedConnection方式。
+- Qt::DirectConnection：信号被发射时槽函数立即执行，槽函数与信号在同一个线程。
+- Qt::QueuedConnection：在事件循环回到接收者线程后执行槽函数，槽函数和信号在不同的线程。
+- Qt::BlockingQueuedConnection：与Qt::QueuedConnection类似，只是信号线程会阻塞直到槽函数执行完毕。（当信号与槽函数在同一个线程则绝对不能用该种方式，否则会造成死锁）
+
+2、在槽函数里，使用QObject::sender()可以获取信号发射者的指针，从而在槽函数里实现对信号发射者进行操作。
+
+```c++
+// 用法，槽函数内
+QSpinBox *spinBox = qobject_cast<QSpinBox *>(sender());
+```
+
+3、自定义信号及使用
+
+信号就是在类定义里声明的一个函数，声明后不需要实现，只需要发射即可。
+
+```c++
+class QPerson : public QObject
+{ 
+    Q_OBJECT
+private:
+int m_age=10;
+public:
+void incAge();
+//   声明信号，信号必须无返回值，可以有参数
+signals:
+void ageChanged( int value);
+}
+```
+
+```c++
+// 发射信号：当执行incAge函数是信号就会被发射，是否有相关槽函数不用管。（发射，就相当于触发相关槽函数）
+void QPerson::incAge()
+{ 
+	m_age++;
+	emit ageChanged(m_age); //发射信号
+}
+```
+
+## QtGlobal头文件
+
+`<QtGlobal>`头文件，包含了Qt类库的一些全局定义，包括基本数据类型、函数、宏。
+
+`<QtGlobal>`头文件中定义的数据类型：
+
+![](imgQT/7.QT数据类型.png)
+
+在`<QtMath>`头文件中定义了三角运算函数、弧度与角度之间的转换函数等。
+
+## 容器类
+
+Qt的容器类的特点：
+
+- 基于模板。
+- Qt的容器类比标准模板库（STL）中的容器类更轻巧、安全和易于使用。
+- 这些容器类是隐式 共享和可重入的，而且它们进行了速度和存储优化，因此可以减少可执行文件的大小。
+- 线程安全的，也就是说它们作为只读容器 时可被多个线程访问。
+
+Qt的容器类的分类：顺序容器（sequential containers）和关联容器（associative containers）。
+
+Qt的容器迭代类分类：Java类型的迭代类和STL类型的迭代类。
+
+- Java类型的迭代类易于使用，提供高级功能，而STL类型的迭代类效率更高一些。
+
+容器遍历：Qt提供了foreach宏用于遍历容器内的所有数据项。
+
+### 顺序容器类
+
+QList、QLinkedList、 QVector、QStack和QQueue。（类比Java中的List）
+
+QList → insert()、replace()、removeAt()、 move()、swap()、append()、prepend()、 removeFirst()和removeLast()等。
+
+QLinkedList → 与QList 方法基本相同。
+
+QVector提供动态数组的功能，以下标索 引访问数据。 QVector的函数接口与QList几乎完全相同， QVector的性能比QList更高，因为 QVector的数据项是连续存储的。
+
+QStack是提供类似于堆栈的后入先出 （LIFO）操作的容器类，push()和pop()是主要的接口函数。
+
+QQueue是提供类似于队列先入先出 （FIFO）操作的容器类。enqueue()和dequeue()是 主要操作函数。
 
 
 
+### 关联容器类
 
+QMap、QMultiMap、 QHash、QMultiHash和QSet。（类似Java中的Map、Set）
+
+## 迭代器
+
+Java类型的迭代器和STL类型的迭代器，foreach。
+
+## Qt组成
+
+基本模块：
+
+| 模块                  | 描述                                             |
+| --------------------- | ------------------------------------------------ |
+| Qt Core               | 其他模块都用到的核心非图形类                     |
+| Qt GUI                | 设计GUI界面的基础类，包括OpenGL                  |
+| Qt Multimedia         | 音频、视频、摄像头和广播功能的类                 |
+| Qt Multimedia Widgets | 实现多媒体功能的界面组件类                       |
+| Qt Network            | 使网络编程更简单和轻便的类                       |
+| Qt QML                | 用于QML和JavaScript语言的类                      |
+| Qt Quick              | 用于构建具有定制用户界面的动态应用程序的声明框架 |
+| Qt Quick Controls     | 创建桌面样式用户界面，基于Qt Quick的用户界面控件 |
+| Qt Quick Dialogs      | 用于Qt Quick的系统对话框类型                     |
+| Qt Quick Layouts      | 用于Qt Quick 2界面元素的布局项                   |
+| Qt SQL                | 使用SQL用于数据库操作的类                        |
+| Qt Test               | 用于应用程序和库进行单元测试的类                 |
+| Qt Widgets            | 用于构建GUI界面的C++图形组件类                   |
+
+附加模块：
+
+增值模块：
 
 
 
@@ -865,17 +1033,22 @@ Qt提供了Q_PROPERTY()宏来定义属性。
 
 # 常用组件
 
+QWidget、QLabel、QPushButton、QLayout、QLineEdit、QTextEdit等
 
+## 文本显示
 
+组件：QLabel 和QLineEdit。
 
+字符串类：QString类。
 
 
 
 
 
+# end
 
+Model/View结构
 
-# Model/View结构
 
 
 
@@ -884,8 +1057,8 @@ Qt提供了Q_PROPERTY()宏来定义属性。
 
 
 
+对话框与多窗体
 
-# 对话框与多窗体
 
 
 
@@ -894,8 +1067,8 @@ Qt提供了Q_PROPERTY()宏来定义属性。
 
 
 
+文件
 
-# 文件系统与读写
 
 
 
@@ -906,8 +1079,8 @@ Qt提供了Q_PROPERTY()宏来定义属性。
 
 
 
+绘图
 
-# 绘图
 
 
 
@@ -916,16 +1089,16 @@ Qt提供了Q_PROPERTY()宏来定义属性。
 
 
 
+QtCharts
 
-# QtCharts
 
 
 
 
 
 
+DataVisualization
 
-# DataVisualization
 
 
 
@@ -934,8 +1107,8 @@ Qt提供了Q_PROPERTY()宏来定义属性。
 
 
 
+数据库
 
-# 数据库
 
 
 
@@ -944,8 +1117,8 @@ Qt提供了Q_PROPERTY()宏来定义属性。
 
 
 
+插件和库
 
-# 自定义插件和库
 
 
 
@@ -954,8 +1127,8 @@ Qt提供了Q_PROPERTY()宏来定义属性。
 
 
 
+多线程
 
-# 多线程
 
 
 
@@ -964,8 +1137,8 @@ Qt提供了Q_PROPERTY()宏来定义属性。
 
 
 
+网络编程
 
-# 网络编程
 
 
 
@@ -974,8 +1147,8 @@ Qt提供了Q_PROPERTY()宏来定义属性。
 
 
 
+多媒体
 
-# 多媒体
 
 
 
@@ -984,14 +1157,13 @@ Qt提供了Q_PROPERTY()宏来定义属性。
 
 
 
+界面
 
-# 界面
 
 
 
 
-
-# 程序发布
+程序发布
 
 
 

@@ -1652,7 +1652,7 @@ void main(){
     printf("%c\n",h.letter);
     union hold save[10];
     union hold* pu;
-	// 联合初始化
+	// 联合初始化方式
     union hold valB = h; // 用另一个联合来初始化
 	union hold valC = {88}; // 初始化联合的n成员
 	union hold valD = {.m = 118.2}; // 指定初始化器
@@ -1683,7 +1683,7 @@ void main(){
 
 （如上面所述，那既然这样，枚举类型怎么起限制作用？）
 
-枚举类型用来表示整型常量，常用来表示取值受限制的常量，是宏定义的集合。**在C 语言中，枚举类型是被当做 int 或者 unsigned int 类型来处理的。**
+枚举类型用来表示整型常量，常用来表示取值受限制的常量，是宏定义的集合。**在 C 语言中，枚举类型是被当做 int 或者 unsigned int 类型来处理的。**
 
 1、声明枚举类型：
 
@@ -1717,7 +1717,8 @@ enum spectrum {red, orange, yellow=11, green, blue, violet};
 3、使用：
 
 ```c
-enum spectrum color; // 枚举类型的变量的值只能是枚举定义中的某一个
+// 枚举类型的变量的值可以是枚举中的，也可以将其他值赋给它
+enum spectrum color; 
 for (color = red; color <= violet; color++){ 
    
 }
@@ -1759,6 +1760,15 @@ typedef char * STRING;
 typedef char * String;
 
 String s1,s2;   // char *s1,*s2;
+```
+
+```c++
+typedef char String[];
+int main() {
+    String s = "你好";
+    printf("%s",s);
+    return 0;
+}
 ```
 
 使用 typedef 为结构体类型定义类型别名：
