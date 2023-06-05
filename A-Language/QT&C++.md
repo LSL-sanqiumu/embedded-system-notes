@@ -48,13 +48,21 @@ QT Creator设置：
 - 设置字体大小。
 - 设置主题。
 
-# Qt Widgets Application
+Qt Creator的编译与调试的说明：
 
-Qt Widgets Application，支持桌面平台的有图形用户界面（Graphic User Interface，GUI）界面的应用程序。  
+![](imgQT/2.编译与调试工具.png)
 
-创建Qt Widgets Application项目：**1.**New File or Project → **2.**Qt Widgets Application → choose... → 3.Location，项目命名与项目目录选择 → **4.**Build System选择，qmake → **5.**Details，要创建的窗体类和头文件，（选上Generate form，勾了就会创建.ui文件而且生成的代码里会自动添加ui成员变量，如果你要用designer来设置ui就勾上，如果没有界面或者要自己在cpp里添加界面代码就不要勾） → **6.**Translation，默认，界面语言翻译配置 → **7.**Kits，32和64位都选上吧 → **8.**Summary，项目目录确认与更改 → **9.**Finished。
+# 项目创建
 
-Details配置中Base Class说明——QDialog、QWidget、QMainWindow的区别：
+Qt Widgets Application —— 支持桌面平台的有图形用户界面（Graphic User Interface，GUI）的应用程序。  
+
+创建Qt Widgets Application项目的步骤：**1.**New File or Project → **2.**Qt Widgets Application → choose... → 3.Location，项目命名与项目目录选择 → **4.**Build System选择，qmake → **5.**Details，要创建的窗体类和头文件，（选上Generate form，勾了就会创建.ui文件而且生成的代码里会自动添加ui成员变量，如果你要用designer来设置ui就勾上，如果没有界面或者要自己在cpp里添加界面代码就不要勾） → **6.**Translation，默认，界面语言翻译配置 → **7.**Kits，32和64位都选上吧 → **8.**Summary，项目目录确认与更改 → **9.**Finished。
+
+创建好的项目目录的简单说明：
+
+![](imgQT/1.界面应用程序.png)
+
+`5.Details`配置中Base Class说明——QDialog、QWidget、QMainWindow的区别：
 
 - QWidget是所有用户界面对象的基类。QDialog和QMainWindow都继承自QWidget，也就是说QDialog和QMainWindow在QWidget的基础上拓展了一些东西。
   dialog —— 对话框；mainwindow —— 主窗口；widget —— 小部件。
@@ -64,15 +72,7 @@ Details配置中Base Class说明——QDialog、QWidget、QMainWindow的区别�
 > QWidget类：https://doc.qt.io/qt-5/qwidget.html
 > QDialog类：https://doc.qt.io/qt-5/qdialog.html
 
-Qt Widgets Application项目目录说明：
-
-![](imgQT/1.界面应用程序.png)
-
-编译与调试：
-
-![](imgQT/2.编译与调试工具.png)
-
-[《Qt5：Widget、Dialog和MainWindow之间的关系》_Snow__Sunny的博客-CSDN博客](https://blog.csdn.net/Snow__Sunny/article/details/108831463#:~:text=Widget翻译,立创建用户界面。)：
+其它资料：[《Qt5：Widget、Dialog和MainWindow之间的关系》_Snow__Sunny的博客-CSDN博客](https://blog.csdn.net/Snow__Sunny/article/details/108831463#:~:text=Widget翻译,立创建用户界面。)：
 
 >### Widget（小部件）
 >
@@ -86,51 +86,56 @@ Qt Widgets Application项目目录说明：
 >QWidget *parent = 0
 >```
 >
->2、非窗口小部件是子小部件，它是嵌入在父窗口中的，不能独立显示，只能显示在其父窗口小部件中。Qt  Designer中的所有小部件都属于非窗口小部件，都需要嵌入到父窗口小部件中，用于显示数据和状态信息，接收用户输入。
+>2、非窗口小部件是子小部件，它是嵌入在父窗口中的，不能独立显示，只能显示在其父窗口小部件中。**Qt  Designer中的所有小部件都属于非窗口小部件**，都需要嵌入到父窗口小部件中，用于显示数据和状态信息，接收用户输入。
+>
+>![](imgQT/2.w.png)
 >
 >### MainWindow（主窗口）
 >
->主窗口提供了构建应用程序用户界面的框架。主窗口拥有自己的布局，包括中央区域、菜单栏、工具栏、状态栏以及Dock小部件，具体分布如下图所示。布局的中心区域可以被任何类型的小部件占用，也就是我们常用来拖拉控件的区域，其它区域可以没有，但是不能没有中央区域。最常见的主窗口就是WPS。稍微大一点的项目就使用QMainWindow来创建，嵌入到主窗口使用QWidget，辅助窗口使用QDialog，如果是内容比较单一的项目，使用QDialog基本上也可以搞定了。
+>主窗口提供了构建应用程序用户界面的框架。主窗口拥有自己的布局，包括中央区域、菜单栏、工具栏、状态栏以及Dock小部件，具体分布如下图所示。布局的中心区域可以被任何类型的小部件占用，也就是我们常用来拖拉控件的区域，其它区域可以没有，但是不能没有中央区域。最常见的主窗口就是WPS。**稍微大一点的项目就使用QMainWindow来创建**，嵌入到主窗口使用QWidget，辅助窗口使用QDialog，如果是内容比较单一的项目，使用QDialog基本上也可以搞定了。
+>
+>![](imgQT/2.mainwindow.png)
 >
 >### Dialog（对话框）
 >
 >Dialog（对话框）一般用作辅助窗口，为用户提供选项并主窗口进行交互，弹出一个对话框，然后选择“OK”或者“cannel”。此外，Qt也提供了许多现成的标准对话框，可用于标准任务，如文件对话框、字体对话框、颜色对话框、消息对话框等。 对话框又分为模态对话框和非模态对话框。
+>
+>![](imgQT/2.d.png)
 
-# GUI应用设计基础
+# 文件设计与运行
 
-## UI文件设计与运行机制
+### 项目文件组成
 
-### 文件组成
-
-Qt Widgets Application项目的基本组成：
+Qt Widgets Application 项目的基本文件：
 
 ![](imgQT/1.界面应用程序.png)
 
-目录说明：
+**目录说明：**
 
 1. Headers：用于存放所有的头文件。
 2. Sources：用于存放项目所有C++源代码文件。
 3. Forms：用于存放所有窗口的界面文件。
 
-文件说明：
+**文件说明：**
 
 1. .pro文件：项目管理文件，用于存储项目设置的文件。
 2. main.cpp：程序入口。
 3. mainwindow.ui：主窗口界面文件，是一个用XML格式来存储窗体上的元件及其布局信息的文件。
-4. mainwindow.h：所设计的窗口类的头文件。
-5. mainwindow.cpp：是mainwindow.h里定义的类的实现文件；（在C++里，任何窗体或界面组件都是用类封装的，一个类一般有一个头文件(.h文件)和一个源程序文件(.cpp文件)，一个用于类定义（类定义及类成员的声明），一个用于类行为（功能函数）具体实现）
+4. **mainwindow.h：所设计的窗口类的头文件。**
+5. **mainwindow.cpp：**是mainwindow.h里定义的类的实现文件。
+   在C++里，任何窗体或界面组件都是用类封装的，一个类一般有一个头文件(.h文件)和一个源程序文件(.cpp文件)，头文件用于类定义（类定义及类成员的声明。C++类也是用于描述对象组成，但不会被加载进程序中，编译时仅仅需要其语意），源文件用于类行为（功能函数）具体实现。
 
 ![](imgQT/3.生成.png)
 
 使用可视化UI设计时，当编译后，会根据每个窗体上的组件及其属性、信号与槽的关联等会自动生成的一个类的定义文件——ui_xxx.h头文件。上面只有一个主窗口，因此只会生成一个类的定义文件ui_mainwindow.h，类名为Ui_MainWindow。
 
-可视化设计的界面的底层实现就是由ui_xxx.h头文件实现的，也就是通过 xxxx.ui → ui_xxx.h，生成了界面的底层代码（即通过可视化设计，生成了我们需要的界面的代码）。
+可视化设计的界面的底层实现就是由ui_xxx.h头文件实现的，也就是通过 xxxx.ui → ui_xxx.h，生成了界面的底层代码（即通过可视化设计，生成了我们需要的界面的代码 —— 一个类）。
 
 
 
-### 运行机制
+### 程序运行机制
 
-通过分析各个窗体文件的内容及功能，就可以知道它们是如何一起工作来实现界面的创建与显示的。以上面图中创建的项目为例，通过mainwindow.ui生成了ui_mainwindow.h；mainwindow.cpp和mainwindow.h、main.cpp、ui_mainwindow.h之间是什么样的关系？
+通过分析各个窗体文件的内容及功能，就可以知道它们是如何一起工作来实现界面的创建与显示的。以上面图中创建的项目为例，通过mainwindow.ui会生成ui_mainwindow.h，那么mainwindow.cpp和mainwindow.h、main.cpp、ui_mainwindow.h之间是什么样的关系？
 
 **1、mainwindow.ui和ui_mainwindow.h：**
 
@@ -204,7 +209,7 @@ private:
 #endif // MAINWINDOW_H
 ```
 
-可以看出该文件中的类有ui_mainwindow.h中定义的那个类类型成员。
+可以看出该文件中的类成员中有ui_mainwindow.h中定义的那个类 —— `Ui::MainWindow *ui; `。
 
 mainwindow.cpp：该文件中是用于实现mainwindow.h中定义的窗体类的功能。其内容如下，可以看出实现了其头文件中声明的构造函数与析构函数：
 
@@ -212,7 +217,7 @@ mainwindow.cpp：该文件中是用于实现mainwindow.h中定义的窗体类的
 #include "mainwindow.h"
 #include "ui_mainwindow.h"   //  注意这里编译后自动加入了生成的与UI文件mainwindow.ui对应的类定义文件
 /*
-	构造函数，意为执行父类QMainWindow的构造函数，创建一个Ui::MainWindow类的对象——ui。
+	构造函数，意为执行父类QMainWindow的构造函数，并创建一个Ui::MainWindow类的对象——ui。
 	这个ui就是MainWindow类的private部分定义的指针变量ui。
 */
 MainWindow::MainWindow(QWidget *parent)
@@ -221,7 +226,6 @@ MainWindow::MainWindow(QWidget *parent)
 {
     // 执行Ui::MainWindow类的setupUi()函数，这个函数实现窗口的生成与各种属性的设置、信号与槽的关联
     ui->setupUi(this);  
-
 }
 
 MainWindow::~MainWindow()
@@ -231,20 +235,40 @@ MainWindow::~MainWindow()
 }
 ```
 
-MainWindow中的构造函数，调用了Ui_MainWindow中的构造函数，那也就是说当实例化MainWindow类的对象时，也就执行了Ui_MainWindow中的构造函数，就实现了窗体的初始化与生成。
+**MainWindow中的构造函数，调用了Ui_MainWindow中的构造函数，那也就是说当实例化MainWindow类的对象时，也就执行了Ui_MainWindow中的构造函数，就实现了窗体的初始化与生成。**
+
+**因此，在main.cpp中创建对象，就实现了窗体的构建与初始化。**
+
+**3、main.cpp：**
+
+```c++
+#include "mainwindow.h"
+#include <QApplication>
+
+int main(int argc, char *argv[])
+{
+    QApplication a(argc, argv);  // 定义并创建应用程序
+    MainWindow w;                // 定义并创建窗口
+    w.show();                    // 显示窗口，默认窗口是不可见的；另外登录窗口之类的需要在main()中创建
+    // 应用程序运行，开始应用程序的消息循环和事件处理。当应用程序退出时exec()函数的值就会返回
+    return a.exec();             
+}
+```
 
 
 
 ### 总结
 
-- Ui::MainWindow类 是用于描述可视化设计的窗体的一个类，该类在通过mainwindow.ui生成的ui_mainwindow.h头文件中，用于描述整个窗体，并且提供构造函数用于初始化并生成窗体。
+- Ui::MainWindow类 是用于描述可视化设计的窗体的一个类，该类在通过mainwindow.ui生成的ui_mainwindow.h头文件中定义，用于描述整个窗体，并且提供了构造函数用于初始化并生成窗体。
 - 而  MainWindow类 则是对可视化设计窗体的功能延伸的描述，是功能描述的集合。（一个用于窗体描述和窗体初始化与生成的实现，一个用于基于窗体的功能拓展）
 
+![](imgQT/2.run.png)
 
+# 应用开发基础
 
 ## 信号与槽
 
-信号（Signal），也就是事件。槽（Slot），也就是事件的响应函数，与普通函数的区别在于槽函数可以与信号关联，当信号被触发，槽函数就会被执行。
+信号（Signal），也就是事件。槽（Slot），也就是事件的响应函数，与普通函数的区别在于槽函数可以与信号关联，当信号被触发，槽函数就会被执行。信号与槽的补充见QT类库。
 
 **信号与槽的关联通过`QObject::connect()`函数实现：**（关联操作可由UI Designer自动生成）
 
@@ -268,9 +292,7 @@ connect(pushButton, SIGNAL(clicked()), MainWindow, SLOT(close()));
 
 ![](imgQT/3.信号与槽.png)
 
-发送者发送信号给接收者，然后接收者执行相应槽函数。
-
-Sender的Signal被触发就会往Receiver发送信号，Receiver接收到信号就执行Slot。
+发送者发送信号给接收者，然后接收者执行相应槽函数。Sender的Signal被触发就会往Receiver发送信号，Receiver接收到信号就执行Slot。
 
 **信号与槽的使用规则：**
 
@@ -306,7 +328,7 @@ UI的可视化设计，只是通过一定处理使得可以根据UI来生成底�
 
 代码化UI设计的缺点：开发效率低，过程繁琐。
 
-纯代码化的UI设计与QT Widgets Application的开发：
+纯代码化的UI设计与QT Widgets Application的开发步骤：
 
 1. 创建好窗体类和头文件，不勾选 Generate form。
 2. 窗体头文件：添加窗体组件、声明初始化函数、声明槽函数。
@@ -314,7 +336,7 @@ UI的可视化设计，只是通过一定处理使得可以根据UI来生成底�
 4. 编译&运行。
 5. 补充：需要使用到QT类库。
 
-**示例——以QDialog基类为例：**
+**示例——纯代码实现，以QDialog基类为例：**
 
 1、基于QDialog基类创建窗体文件：
 
@@ -1035,135 +1057,13 @@ Java类型的迭代器和STL类型的迭代器，foreach。
 
 QWidget、QLabel、QPushButton、QLayout、QLineEdit、QTextEdit等
 
-## 文本显示
-
-组件：QLabel 和QLineEdit。
+文本显示：QLabel 和QLineEdit。
 
 字符串类：QString类。
 
+控件的功能、属性：
 
-
-
-
-# end
-
-Model/View结构
-
-
-
-
-
-
-
-
-
-对话框与多窗体
-
-
-
-
-
-
-
-
-
-文件
-
-
-
-
-
-
-
-
-
-
-
-绘图
-
-
-
-
-
-
-
-
-
-QtCharts
-
-
-
-
-
-
-
-DataVisualization
-
-
-
-
-
-
-
-
-
-数据库
-
-
-
-
-
-
-
-
-
-插件和库
-
-
-
-
-
-
-
-
-
-多线程
-
-
-
-
-
-
-
-
-
-网络编程
-
-
-
-
-
-
-
-
-
-多媒体
-
-
-
-
-
-
-
-
-
-界面
-
-
-
-
-
-程序发布
+# 多窗体
 
 
 
