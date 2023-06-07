@@ -643,6 +643,10 @@ for(int i = 0; i < 2; i++)
 
 二维数组中，数组名表示的是指向首元素的地址，而`arr[0]`表示指向第一行的数组的首元素的地址。
 
+## 变长数组
+
+
+
 # 函数
 
 **1、函数使用三步骤：**1、函数原型声明；2、函数体编写；3、函数调用。
@@ -1002,6 +1006,12 @@ int process(int (*p)(int,int),int x, int y){
 
 NULL，空指针，内存编号`0x00000000`（32位平台）、`0x0000000000000000`（64位平台），常用于指针初始化（用0也是一样的）。
 
+## 回调函数
+
+
+
+
+
 # 字符串
 
 ## 字符串初始化
@@ -1128,7 +1138,7 @@ printf("%s",address);   // 打印
 
 
 
-## C库-字符串函数
+## C标准库库-字符串函数
 
 `#include <string.h>`，sprintf()的原型在`#include <stdio.h>`。
 
@@ -2058,14 +2068,29 @@ C还允许混合使用内联函数定义和外部函数定义：
 
 # C标准库
 
+## 字符串
 
 
 
+## I/O格式化
 
-# 文件IO
+printf、fprintf、sprintf、scanf、fscanf、sscanf
+
+## 内存
+
+malloc、free、calloc、realloc、memset、memcpy、memmove、memcmp
+
+## 文件IO
+
+fopen、fclose、fgetc、fputc、fgets、fputs、fread、fwrite、fseek、ftell、rewind
 
 文件（file） 通常是在磁盘或固态硬盘上的一段已命名的存储区。   
 
 C中的文件：把文件看作是一系列连续的字节， 每个字节都能被单独读取。  
 
 C中的两种文件格式：文本模式和二进制模式。
+
+
+
+
+
