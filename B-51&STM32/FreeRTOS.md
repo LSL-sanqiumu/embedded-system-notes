@@ -14,7 +14,7 @@ FreeRTOS：面向微控制器和小型微处理器的实时操作系统。
 
 为何发展处实时操作系统，相对于轮询来说，有什么优缺点呢？
 
-# 文件下载和说明
+# 下载
 
 FreeRTOS的源代码托管网址：[FreeRTOS Real Time Kernel (RTOS) - Browse /FreeRTOS at SourceForge.net](https://sourceforge.net/projects/freertos/files/FreeRTOS/)
 
@@ -48,13 +48,13 @@ FreeRTOS的源代码托管网址：[FreeRTOS Real Time Kernel (RTOS) - Browse /F
 - port.c：里面的内容是由 FreeRTOS 官方的技术人员为 Cortex-M3 内核的处理器写的接口文件，里面核心的上下文切换代码是由汇编语言编写而成。
 - portmacro.h： 则是 port.c 文件对应的头文件，主要是一些数据类型和宏定义
 
-此外还需要一个FreeRTOS的配置头文件，该文件见Demo目录里的STM32相关的demo中文件名为`FreeRTOSConfig.h`的文件。
+此外还需要一个FreeRTOS的配置头文件，该文件见Demo目录里的STM32相关的demo目录中文件名为`FreeRTOSConfig.h`的文件。
 
 **3、总结：**
 
 使用官方的FreeRTOS的移植时，涉及的文件如下：
 
-1. FreeRTOS源代码文件：include目录下的文件和Source目录下的直接子文件。
+1. FreeRTOS源代码文件：include目录下的头文件和Source目录下的子文件。
 2. 软件、硬件之间的接口文件：如果是STM32，那就是portable目录下的RVDS目录下的文件。
 3. 内存管理文件：MemMang目录下的文件，一般使用heap_4.c即可。
 4. 配置文件：`FreeRTOSConfig.h`。
@@ -63,29 +63,36 @@ FreeRTOS的源代码托管网址：[FreeRTOS Real Time Kernel (RTOS) - Browse /F
 
 ![](imgFreeRTOS/1.目录结构和文件.png)
 
+protable内的文件，对于不同平台是不同的，对于Keil来则是RVDS目录里的，对于IAR则是IAR目录里的。~~`FreeRTOSConfig.h`，也是如此，IAR下则找到IAR后缀的demo目录里的，Keil下则找到Keil后缀的demo目录里的。~~
+
 # 移植FreeRTOS
 
-将FreeRTOS添加进STM32F103C8的工程里，分为两步：
+将FreeRTOS添加进STM32F103C8的工程里，总的来说可以分为两步：
 
-1. 创建好STM32F103C8的工程：创建项目，创建好组并加载好相关文件，再搞好工程配置（）。
+1. 创建好STM32F103C8的工程：创建项目，创建好组并加载好相关文件，再搞好工程配置（Debug中选用ST-Link Debug并设置其Flash Download为Reset and Run；配好C/C++的include path、宏定义）。
 2. 移植FreeRTOS：将涉及的文件加入到项目组里，修改好一些文件，再搞好项目的工程配置。
 
 ## Keil
 
-使用Keil来进行开发。
+使用Keil开发工具来进行开发。
 
 1、创建好工程项目：STM32F103C8的工程创建过程说明见`STM32.md`。
 
 2、移植FreeRTOS：
 
-- 工程中创建好FreeRTOS/src、FreeRTOS/portable组，将相关文件添加进去。
+- 工程中创建好FreeRTOS/src、FreeRTOS/portable组，将相关文件添加进去。（组命名，看你）
+
+  FreeRTOS/src：将源码中Source目录下的直接子文件都放进去。
+  FreeRTOS/portable：heap_4.c、port.c、portmacro.h。
 - 将`FreeRTOSConfig.h`文件添加到User组里，需要修改该文件。
+
+  该配置文件一般放在User里。
 - 编译的时候需要为FreeRTOS源文件指定头文件的路径，不然编译会报错，因此需要在C/C++的 include path 添加FreeRTOS目录下的include、portable目录。
 - 修改`stm32f10x_it.c`文件。
 
 > FreeRTOSConfig.h 是直接从 demo 文件夹中某些demo目录下面拷贝过来的，该头文件对裁剪整个 FreeRTOS 所需的功能的宏均做了定义，有些宏定义被使能，有些宏定义被失能，一开始我们只需要配置最简单的功能即可。要想随心所欲的配置 FreeRTOS 的功能，我们必须对这些宏定义的功能有所掌握。野火修改过的`FreeRTOSConfig.h`文件，里面添加了一些中文注释，并且把相关的头文件进行分类，方便查找宏定义和阅读，见《FreeRTOS 内核实现与应用开发实战指南》。
 
-修改`FreeRTOSConfig.h`，在末尾添加以下内容：
+修改`FreeRTOSConfig.h`，在末尾的`#endif`前添加以下内容：
 
 ```c
 #define xPortPendSVHandler 	PendSV_Handler
@@ -112,7 +119,7 @@ void SysTick_Handler(void)
 
 ```c
 #include "stm32f10x.h"                  // Device header
-#include "Delay.h"
+#include "OLED.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include "portmacro.h"
@@ -164,6 +171,8 @@ void led_task2(void *arg)
 int main(void) 
 {
 	led_init();
+	OLED_Init();
+	OLED_ShowString(1,1,"FreeRTOSv9.0.0");
 	xTaskCreate(led_task0, "led_task0", 1024, NULL, 20, &led_task_handle0);
 	xTaskCreate(led_task1, "led_task1", 1024, NULL, 20, &led_task_handle1);
 	xTaskCreate(led_task2, "led_task2", 1024, NULL, 20, &led_task_handle2);
@@ -172,13 +181,182 @@ int main(void)
 }
 ```
 
+## IAR
+
+使用IAR开发工具来进行开发。同理：
+
+1. 创建STM32F103C8的工程项目。
+2. 移植FreeRTOS。
+
+### 创建STM32工程
+
+**0、新建工作空间，并创建项目。**
+
+先创建一个目录——`IARworkspaces`，用于当作工作空间，在该目录下创建`FreeRTOSDemo`目录，`FreeRTOSDemo`目录里创建好以下文件夹：
+
+![](imgFreeRTOS/2.目录.png)
+
+将需要的FreeRTOS支持文件、STM32103C8固件库文件放进这些目录里。（FreeRTOS目录里放FreeRTOS支持文件；Hardware用于放一些驱动代码和头文件；Libraries用于放STM32的外设库文件；Start放启动文件和内核文件；User放`main.c`、`FreeRTOSConfig.h`、`stm32f10x_conf.h`、`stm32f10x_it.c`、`stm32f10x_it.h`；Project目录用于存放一会创建的IAR工程文件；Config，存放固件库STM32F10x_StdPeriph_Lib_V3.5.0\Project\STM32F10x_StdPeriph_Template\EWARM 文件夹里的所有.icf文件。）
+
+做好上面这些后，就打开IAR，选择 File → New Workspace 建立好工作空间，然后通过 File → Save Workspase As...  保存到Project目录下，名字就设为项目名称吧——FreeRTOSDemo；接着Project → Create New Project，选择Empty project，再点OK，选择保存路径仍然是刚才新建的FreeRTOSDemo目录下的Project文件夹里，保存名字也是FreeRTOSDemo。
+
+**1、移植固件库：添加组，然后再添加源文件。**
+
+添加组：（FreeRTOS、Hardware、Libraries、Start、System、User，六个组，由你自己决定，知道组里有啥就行）
+
+![](imgFreeRTOS/3.添加组和文件.png)
+
+添加源文件：操作和上图类似，只不过是在组上面右键，然后选择添加文件。
+
+**2、工程配置。**
+
+先选中`FreeRTOSDemo-Debug`，点击右键选择Options（从Project → Options打开也可）的打开配置面板：
+
+①在General Options → Target → Device 选好使用的芯片型号（STM32F103C8），然后 General Options → Library Configuration 里勾上Use CMSIS5.7。（注意，勾选了`Use CMSIS5.7`，Start文件夹中的`core_cm3.h`、`core_cm3.c`就得去掉，表示不使用STM32提供的core；如果不勾选，使用下载的固件库的`core_cm3.c`和`core_cm3.h`，直接编译将会出现一个Core_cm3版本的问题，错误的原因是因为新版本CMSIS的intrinsics.h等文件与之前的版本不兼容，而解决方法就是注释掉`core_cm3.h`里的93行的`#include <intrinsics.h>`。）
+
+②然后，C/C++Compiler → Preprocessor里，配置头文件目录（为了在include时不用加上路径）和定义全局宏，配置分别如下：
+
+```
+$PROJ_DIR$\..\
+$PROJ_DIR$\..\Libraries
+$PROJ_DIR$\..\Start
+$PROJ_DIR$\..\Hardware
+$PROJ_DIR$\..\System
+$PROJ_DIR$\..\User
+$PROJ_DIR$\..\FreeRTOS\include
+$PROJ_DIR$\..\FreeRTOS\portable
+```
+
+```
+USE_STDPERIPH_DRIVER
+STM32F10X_MD
+```
+
+③接着，Linker里勾上`Override default`，并且设置为`$PROJ_DIR$\..\Config\stm32f10x_flash.icf`，选择到stm32f10x_flash.icf文件。
+
+④最后，配置Debugger：Debugger → Setup 里的Driver选择使用的调试器（我是ST-LINK），再在Download里将`Verify download`勾上。
+
+⑤点击OK，然后点击make进行编译，无错误无警告即可。
 
 
 
+### 移植FreeRTOS
 
+①为FreeRTOS添加src组、protable组，添加好文件：
 
+![](imgFreeRTOS/4.iarFreeRTOS.png)
 
+②User组里添加好`FreeRTOSConfig.h`文件，并在末尾的`#endif`前添加以下内容：
 
+```c
+#define xPortPendSVHandler 	PendSV_Handler
+#define vPortSVCHandler 	SVC_Handler
+#define xPortSysTickHandler	SysTick_Handler
+```
+
+③在stm32f10x_it.c文件中找到以下三个函数并注释掉：
+
+```c
+void SVC_Handler(void)
+{
+}
+void PendSV_Handler(void)
+{
+}
+void SysTick_Handler(void)
+{
+}
+```
+
+④修改startup_stm32f10x_xd.s文件：通过编译软件编译后另存为另一个文件，然后使用这个文件替代掉原来的。修改内容如下：
+
+```c
+// 找到Reset_Handler这里，最后的SECTION修改 SECTION .text:CODE:REORDER:NOROOT(1)
+Reset_Handler
+        LDR     R0, =SystemInit
+        BLX     R0
+        LDR     R0, =__iar_program_start
+        BX      R0
+
+        PUBWEAK NMI_Handler
+        SECTION .text:CODE:REORDER:NOROOT(1)
+```
+
+⑤错误解决：
+
+```
+Error[2]: Failed to open #include file 'FreeRTOSConfig.h' xxx\portasm.s
+```
+
+解决办法：工程名右键 → Options... → Assembler → Preprocesser，在`Additional include directories`添加`FreeRTOSConfig.h`所在目录 —— `$PROJ_DIR$\..\User`。
+
+⑥编译，无错误，无警告。
+
+⑦测试，main.c，和Keil下测试代码的一致：
+
+```c
+#include "stm32f10x.h"                  // Device header
+#include "OLED.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "portmacro.h"
+
+static TaskHandle_t led_task_handle0 = NULL;
+static TaskHandle_t led_task_handle1 = NULL;
+static TaskHandle_t led_task_handle2 = NULL;
+
+void led_init(void)
+{
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
+	
+	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_2 | GPIO_Pin_4;
+	GPIO_InitStructure.GPIO_Speed =  GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+}
+void led_task0(void *arg)
+{
+	while(1)                            
+	{
+		GPIO_SetBits(GPIOA, GPIO_Pin_0);
+		vTaskDelay(500/portTICK_PERIOD_MS);
+		GPIO_ResetBits(GPIOA, GPIO_Pin_0);
+		vTaskDelay(500/portTICK_PERIOD_MS);
+	}
+}
+void led_task1(void *arg)
+{
+	while(1)                            
+	{
+		GPIO_SetBits(GPIOA, GPIO_Pin_2);
+		vTaskDelay(1000/portTICK_PERIOD_MS);
+		GPIO_ResetBits(GPIOA, GPIO_Pin_2);
+		vTaskDelay(1000/portTICK_PERIOD_MS);
+	}
+}
+void led_task2(void *arg)
+{
+	while(1)                            
+	{
+		GPIO_SetBits(GPIOA, GPIO_Pin_4);
+		vTaskDelay(2000/portTICK_PERIOD_MS);
+		GPIO_ResetBits(GPIOA, GPIO_Pin_4);
+		vTaskDelay(2000/portTICK_PERIOD_MS);
+	}
+}
+int main(void) 
+{
+	led_init();
+	OLED_Init();
+	OLED_ShowString(1,1,"FreeRTOSv9.0.0");
+	xTaskCreate(led_task0, "led_task0", 1024, NULL, 20, &led_task_handle0);
+	xTaskCreate(led_task1, "led_task1", 1024, NULL, 20, &led_task_handle1);
+	xTaskCreate(led_task2, "led_task2", 1024, NULL, 20, &led_task_handle2);
+	vTaskStartScheduler();
+	while(1);
+}
+```
 
 
 
