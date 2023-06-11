@@ -14,7 +14,7 @@ FreeRTOS：面向微控制器和小型微处理器的实时操作系统。
 
 为何发展处实时操作系统，相对于轮询来说，有什么优缺点呢？
 
-# 文件下载和目录
+# 文件下载和说明
 
 FreeRTOS的源代码托管网址：[FreeRTOS Real Time Kernel (RTOS) - Browse /FreeRTOS at SourceForge.net](https://sourceforge.net/projects/freertos/files/FreeRTOS/)
 
@@ -48,13 +48,131 @@ FreeRTOS的源代码托管网址：[FreeRTOS Real Time Kernel (RTOS) - Browse /F
 - port.c：里面的内容是由 FreeRTOS 官方的技术人员为 Cortex-M3 内核的处理器写的接口文件，里面核心的上下文切换代码是由汇编语言编写而成。
 - portmacro.h： 则是 port.c 文件对应的头文件，主要是一些数据类型和宏定义
 
+此外还需要一个FreeRTOS的配置头文件，该文件见Demo目录里的STM32相关的demo中文件名为`FreeRTOSConfig.h`的文件。
+
 **3、总结：**
 
-使用官方的FreeRTOS的移植，涉及的文件如下：
+使用官方的FreeRTOS的移植时，涉及的文件如下：
 
 1. FreeRTOS源代码文件：include目录下的文件和Source目录下的直接子文件。
 2. 软件、硬件之间的接口文件：如果是STM32，那就是portable目录下的RVDS目录下的文件。
 3. 内存管理文件：MemMang目录下的文件，一般使用heap_4.c即可。
+4. 配置文件：`FreeRTOSConfig.h`。
+
+移植时只将这些文件分离出来即可，目录结构也可以按照官方的FreeRTOS目录结构来设置，即分离出来的文件放到另一个FreeRTOS目录里，然后源代码文件和目录照搬，portable目录里只留需要的内存管理文件、软硬件接口文件即可。目录结构和文件示例如下：
+
+![](imgFreeRTOS/1.目录结构和文件.png)
+
+# 移植FreeRTOS
+
+将FreeRTOS添加进STM32F103C8的工程里，分为两步：
+
+1. 创建好STM32F103C8的工程：创建项目，创建好组并加载好相关文件，再搞好工程配置（）。
+2. 移植FreeRTOS：将涉及的文件加入到项目组里，修改好一些文件，再搞好项目的工程配置。
+
+## Keil
+
+使用Keil来进行开发。
+
+1、创建好工程项目：STM32F103C8的工程创建过程说明见`STM32.md`。
+
+2、移植FreeRTOS：
+
+- 工程中创建好FreeRTOS/src、FreeRTOS/portable组，将相关文件添加进去。
+- 将`FreeRTOSConfig.h`文件添加到User组里，需要修改该文件。
+- 编译的时候需要为FreeRTOS源文件指定头文件的路径，不然编译会报错，因此需要在C/C++的 include path 添加FreeRTOS目录下的include、portable目录。
+- 修改`stm32f10x_it.c`文件。
+
+> FreeRTOSConfig.h 是直接从 demo 文件夹中某些demo目录下面拷贝过来的，该头文件对裁剪整个 FreeRTOS 所需的功能的宏均做了定义，有些宏定义被使能，有些宏定义被失能，一开始我们只需要配置最简单的功能即可。要想随心所欲的配置 FreeRTOS 的功能，我们必须对这些宏定义的功能有所掌握。野火修改过的`FreeRTOSConfig.h`文件，里面添加了一些中文注释，并且把相关的头文件进行分类，方便查找宏定义和阅读，见《FreeRTOS 内核实现与应用开发实战指南》。
+
+修改`FreeRTOSConfig.h`，在末尾添加以下内容：
+
+```c
+#define xPortPendSVHandler 	PendSV_Handler
+#define vPortSVCHandler 	SVC_Handler
+#define xPortSysTickHandler	SysTick_Handler
+```
+
+修改`stm32f10x_it.c`文件：（上面添加的内容会导致重复定义的错误，因此需要修改该文件，把重复的给注释掉）
+
+```c
+// 在stm32f10x_it.c文件中找到以下三个函数并注释掉
+void SVC_Handler(void)
+{
+}
+void PendSV_Handler(void)
+{
+}
+void SysTick_Handler(void)
+{
+}
+```
+
+3、修改`main.c`，测试：（通过FreeRTOS实现流水灯）
+
+```c
+#include "stm32f10x.h"                  // Device header
+#include "Delay.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "portmacro.h"
+
+static TaskHandle_t led_task_handle0 = NULL;
+static TaskHandle_t led_task_handle1 = NULL;
+static TaskHandle_t led_task_handle2 = NULL;
+
+void led_init(void)
+{
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
+	
+	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_2 | GPIO_Pin_4;
+	GPIO_InitStructure.GPIO_Speed =  GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+}
+void led_task0(void *arg)
+{
+	while(1)                            
+	{
+		GPIO_SetBits(GPIOA, GPIO_Pin_0);
+		vTaskDelay(500/portTICK_PERIOD_MS);
+		GPIO_ResetBits(GPIOA, GPIO_Pin_0);
+		vTaskDelay(500/portTICK_PERIOD_MS);
+	}
+}
+void led_task1(void *arg)
+{
+	while(1)                            
+	{
+		GPIO_SetBits(GPIOA, GPIO_Pin_2);
+		vTaskDelay(1000/portTICK_PERIOD_MS);
+		GPIO_ResetBits(GPIOA, GPIO_Pin_2);
+		vTaskDelay(1000/portTICK_PERIOD_MS);
+	}
+}
+void led_task2(void *arg)
+{
+	while(1)                            
+	{
+		GPIO_SetBits(GPIOA, GPIO_Pin_4);
+		vTaskDelay(2000/portTICK_PERIOD_MS);
+		GPIO_ResetBits(GPIOA, GPIO_Pin_4);
+		vTaskDelay(2000/portTICK_PERIOD_MS);
+	}
+}
+int main(void) 
+{
+	led_init();
+	xTaskCreate(led_task0, "led_task0", 1024, NULL, 20, &led_task_handle0);
+	xTaskCreate(led_task1, "led_task1", 1024, NULL, 20, &led_task_handle1);
+	xTaskCreate(led_task2, "led_task2", 1024, NULL, 20, &led_task_handle2);
+	vTaskStartScheduler();
+	while(1);
+}
+```
+
+
 
 
 
