@@ -36,7 +36,8 @@ FreeRTOS的源代码托管网址：[FreeRTOS Real Time Kernel (RTOS) - Browse /F
 
 关于portable目录：对于不同编译器的支持文件
 
-- Keil目录和RVDS目录：两个目录内的文件是一样的，因此官方只将文件放在了RVDS目录里。RVDS 目录里包含了各种处理器相关的文件目录，根据目录名称可以指定是哪个内核（STM32的M0、M3、M4等内核）的支持文件，里面提供了 cortex-m0、m3、m4 和 m7 等内核的单片机的接口文件。**RVDS目录里的文件就是用来将FreeRTOS和MCU联系起来的接口文件。**
+- Keil目录和RVDS目录：两个目录内的文件是一样的，都是Keil下用的，因此官方只将文件放在了RVDS目录里。RVDS 目录里包含了各种处理器相关的文件目录，根据目录名称可以指定是哪个内核（STM32的M0、M3、M4等内核）的支持文件，里面提供了 cortex-m0、m3、m4 和 m7 等内核的单片机的接口文件。**RVDS目录里的文件就是用来将FreeRTOS和MCU联系起来的接口文件。**
+- IAR目录，IAR下的cortex-m0、m3、m4 和 m7 等内核的单片机的接口文件。
 - MemMang目录： 存放的是跟内存管理相关的，总共有五个 heap 文件以及一个 readme 说明文件，这五个 heap 文件在移植的时候必须使用一个，因为 **FreeRTOS 在创建内核对象的时候使用的是动态分配内存**，而这些动态内存分配的函数则在这几个文件里面实现，不同的分配算法会导致不同的效率与结果。（初学，选用heap_4.c即可）
 
 > FreeRTOS 是一个软件，单片机是一个硬件，FreeRTOS 要想运行在一个单片机上面，它们就必须关联在一起，如何关联？还是得通过写代码来关联，这部分关联的文件叫接口文件，通常由汇编和 C 联合编写。这些接口文件都是跟硬件密切相关的，不同的硬件接口文件是不一样的，但都大同小异。**编写这些接口文件的过程我们就叫移植**，移植的过程通常由 FreeRTOS 和 mcu 原厂 的人来负责，移植好的这些接口文件就放在 RVDS 这个文件夹的目录下。FreeRTOS 为我们提供了 cortex-m0、m3、m4 和 m7 等内核的单片机的接口文件，只要 是使用了这些内核的 mcu 都可以使用里面的接口文件。
@@ -55,15 +56,15 @@ FreeRTOS的源代码托管网址：[FreeRTOS Real Time Kernel (RTOS) - Browse /F
 使用官方的FreeRTOS的移植时，涉及的文件如下：
 
 1. FreeRTOS源代码文件：include目录下的头文件和Source目录下的子文件。
-2. 软件、硬件之间的接口文件：如果是STM32，那就是portable目录下的RVDS目录下的文件。
+2. 软件、硬件之间的接口文件：如果是STM32并在Keil下进行开发，那就是portable目录中RVDS目录下的文件；如果是在IAR下进行开发，那就是在portable目录中的IAR目录下的文件。
 3. 内存管理文件：MemMang目录下的文件，一般使用heap_4.c即可。
 4. 配置文件：`FreeRTOSConfig.h`。
 
-移植时只将这些文件分离出来即可，目录结构也可以按照官方的FreeRTOS目录结构来设置，即分离出来的文件放到另一个FreeRTOS目录里，然后源代码文件和目录照搬，portable目录里只留需要的内存管理文件、软硬件接口文件即可。目录结构和文件示例如下：
+移植时只将这些文件分离出来即可，目录结构也可以按照官方的FreeRTOS目录结构来设置，即分离出来的文件放到另一个FreeRTOS目录里，然后源代码文件和目录照搬，portable目录里只留需要的内存管理文件、软硬件接口文件即可。以Keil下开发为例，目录结构和文件示例如下：
 
 ![](imgFreeRTOS/1.目录结构和文件.png)
 
-protable内的文件，对于不同平台是不同的，对于Keil来则是RVDS目录里的，对于IAR则是IAR目录里的。~~`FreeRTOSConfig.h`，也是如此，IAR下则找到IAR后缀的demo目录里的，Keil下则找到Keil后缀的demo目录里的。~~
+protable内的文件，对于不同平台是不同的，对于Keil来则是RVDS目录里的，对于IAR则是IAR目录里的。`FreeRTOSConfig.h`，也是如此，IAR下则找到IAR后缀的demo目录里的，Keil下则找到Keil后缀的demo目录里的。
 
 # 移植FreeRTOS
 
@@ -82,7 +83,7 @@ protable内的文件，对于不同平台是不同的，对于Keil来则是RVDS�
 
 - 工程中创建好FreeRTOS/src、FreeRTOS/portable组，将相关文件添加进去。（组命名，看你）
 
-  FreeRTOS/src：将源码中Source目录下的直接子文件都放进去。
+  FreeRTOS/src：将源码中Source目录下的**直接子文件**都放进去。
   FreeRTOS/portable：heap_4.c、port.c、portmacro.h。
 - 将`FreeRTOSConfig.h`文件添加到User组里，需要修改该文件。
 
@@ -196,7 +197,15 @@ int main(void)
 
 ![](imgFreeRTOS/2.目录.png)
 
-将需要的FreeRTOS支持文件、STM32103C8固件库文件放进这些目录里。（FreeRTOS目录里放FreeRTOS支持文件；Hardware用于放一些驱动代码和头文件；Libraries用于放STM32的外设库文件；Start放启动文件和内核文件；User放`main.c`、`FreeRTOSConfig.h`、`stm32f10x_conf.h`、`stm32f10x_it.c`、`stm32f10x_it.h`；Project目录用于存放一会创建的IAR工程文件；Config，存放固件库STM32F10x_StdPeriph_Lib_V3.5.0\Project\STM32F10x_StdPeriph_Template\EWARM 文件夹里的所有.icf文件。）
+将需要的FreeRTOS支持文件、STM32103C8固件库文件放进这些目录里。
+
+> FreeRTOS目录里放FreeRTOS支持文件；
+> Hardware用于放一些驱动代码和头文件；
+> Libraries用于放STM32的外设库文件；
+> Start放启动文件和内核文件；
+> User放`main.c`、`FreeRTOSConfig.h`、`stm32f10x_conf.h`、`stm32f10x_it.c`、`stm32f10x_it.h`；
+> Project目录用于存放一会创建的IAR工程文件；
+> Config，存放固件库STM32F10x_StdPeriph_Lib_V3.5.0\Project\STM32F10x_StdPeriph_Template\EWARM 文件夹里的所有.icf文件。
 
 做好上面这些后，就打开IAR，选择 File → New Workspace 建立好工作空间，然后通过 File → Save Workspase As...  保存到Project目录下，名字就设为项目名称吧——FreeRTOSDemo；接着Project → Create New Project，选择Empty project，再点OK，选择保存路径仍然是刚才新建的FreeRTOSDemo目录下的Project文件夹里，保存名字也是FreeRTOSDemo。
 
