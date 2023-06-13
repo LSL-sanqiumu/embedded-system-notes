@@ -73,7 +73,7 @@ protable内的文件，对于不同平台是不同的，对于Keil来则是RVDS�
 1. 创建好STM32F103C8的工程：创建项目，创建好组并加载好相关文件，再搞好工程配置（Debug中选用ST-Link Debug并设置其Flash Download为Reset and Run；配好C/C++的include path、宏定义）。
 2. 移植FreeRTOS：将涉及的文件加入到项目组里，修改好一些文件，再搞好项目的工程配置。
 
-## Keil
+## Keil下
 
 使用Keil开发工具来进行开发。
 
@@ -182,7 +182,7 @@ int main(void)
 }
 ```
 
-## IAR
+## IAR下
 
 使用IAR开发工具来进行开发。同理：
 
@@ -217,11 +217,33 @@ int main(void)
 
 添加源文件：操作和上图类似，只不过是在组上面右键，然后选择添加文件。
 
+修改启动文件：（可以先不操作这一步，看看最后编译会不会出现那些警告）
+
+官方固件库的启动文件，在IAR编译器编译时会出现一些警告，解决办法就是，修改startup_stm32f10x_xd.s文件，通过编辑软件编辑该文件然后另存为另一个同名文件，然后使用这个文件替代掉原来的。修改内容如下：
+
+```c
+// 找到Reset_Handler这里，最后的SECTION修改 SECTION .text:CODE:REORDER:NOROOT(1)
+// SECTION .text:CODE:REORDER(1)  改为 SECTION .text:CODE:REORDER:NOROOT(1)
+// 这样也行 SECTION .text:CODE:REORDER(1)  改为 SECTION .text:CODE:NOROOT:REORDER(1)
+Reset_Handler
+        LDR     R0, =SystemInit
+        BLX     R0
+        LDR     R0, =__iar_program_start
+        BX      R0
+
+        PUBWEAK NMI_Handler
+        SECTION .text:CODE:REORDER:NOROOT(1)
+```
+
+NOROOT表示如果符号没有被关联的时候是被优专化掉的， 如果想不被优化则使用ROOT。
+
 **2、工程配置。**
 
 先选中`FreeRTOSDemo-Debug`，点击右键选择Options（从Project → Options打开也可）的打开配置面板：
 
-①在General Options → Target → Device 选好使用的芯片型号（STM32F103C8），然后 General Options → Library Configuration 里勾上Use CMSIS5.7。（注意，勾选了`Use CMSIS5.7`，Start文件夹中的`core_cm3.h`、`core_cm3.c`就得去掉，表示不使用STM32提供的core；如果不勾选，使用下载的固件库的`core_cm3.c`和`core_cm3.h`，直接编译将会出现一个Core_cm3版本的问题，错误的原因是因为新版本CMSIS的intrinsics.h等文件与之前的版本不兼容，而解决方法就是注释掉`core_cm3.h`里的93行的`#include <intrinsics.h>`。）
+①在General Options → Target → Device 选好使用的芯片型号（STM32F103C8），然后 General Options → Library Configuration 里勾上Use CMSIS5.7。
+
+> 注意，勾选了`Use CMSIS5.7`，Start文件夹中的`core_cm3.h`、`core_cm3.c`就得去掉，表示不使用STM32F10x固件库的core；如果不勾选，使用下载的固件库的`core_cm3.c`和`core_cm3.h`，直接编译将会出现一个Core_cm3版本的问题，错误的原因是因为新版本CMSIS的intrinsics.h等文件与之前的版本不兼容，而解决方法就是注释掉`core_cm3.h`里的93行的`#include <intrinsics.h>`，源文件只有只读权限，要修改可以通过编辑软件编辑后另存为一个新的文件，然后替代掉原来的即可。
 
 ②然后，C/C++Compiler → Preprocessor里，配置头文件目录（为了在include时不用加上路径）和定义全局宏，配置分别如下：
 
@@ -245,7 +267,40 @@ STM32F10X_MD
 
 ④最后，配置Debugger：Debugger → Setup 里的Driver选择使用的调试器（我是ST-LINK），再在Download里将`Verify download`勾上。
 
-⑤点击OK，然后点击make进行编译，无错误无警告即可。
+⑤修改startup_stm32f10x_xd.s文件：通过编辑软件编辑后另存为另一个文件，然后使用这个文件替代掉原来的。修改内容如下：
+
+```c
+// 找到Reset_Handler这里，最后的SECTION修改 SECTION .text:CODE:REORDER:NOROOT(1)
+Reset_Handler
+        LDR     R0, =SystemInit
+        BLX     R0
+        LDR     R0, =__iar_program_start
+        BX      R0
+
+        PUBWEAK NMI_Handler
+        SECTION .text:CODE:REORDER:NOROOT(1)
+```
+
+⑥点击OK，然后点击make进行编译，无错误无警告即可。
+
+官方固件库的启动文件，在IAR编译器编译时会出现一些警告，解决办法就是，修改startup_stm32f10x_xd.s文件，通过编辑软件编辑该文件然后另存为另一个同名文件，然后使用这个文件替代掉原来的。修改内容如下：
+
+```c
+// 找到Reset_Handler这里，最后的SECTION修改 SECTION .text:CODE:REORDER:NOROOT(1)
+// SECTION .text:CODE:REORDER(1)  改为 SECTION .text:CODE:REORDER:NOROOT(1)
+Reset_Handler
+        LDR     R0, =SystemInit
+        BLX     R0
+        LDR     R0, =__iar_program_start
+        BX      R0
+
+        PUBWEAK NMI_Handler
+        SECTION .text:CODE:REORDER:NOROOT(1)
+```
+
+NOROOT表示如果符号没有被关联的时候是被优专化掉的， 如果想不被优化则使属用ROOT。
+
+
 
 
 
@@ -277,21 +332,7 @@ void SysTick_Handler(void)
 }
 ```
 
-④修改startup_stm32f10x_xd.s文件：通过编译软件编译后另存为另一个文件，然后使用这个文件替代掉原来的。修改内容如下：
-
-```c
-// 找到Reset_Handler这里，最后的SECTION修改 SECTION .text:CODE:REORDER:NOROOT(1)
-Reset_Handler
-        LDR     R0, =SystemInit
-        BLX     R0
-        LDR     R0, =__iar_program_start
-        BX      R0
-
-        PUBWEAK NMI_Handler
-        SECTION .text:CODE:REORDER:NOROOT(1)
-```
-
-⑤错误解决：
+④错误解决：
 
 ```
 Error[2]: Failed to open #include file 'FreeRTOSConfig.h' xxx\portasm.s
@@ -299,9 +340,9 @@ Error[2]: Failed to open #include file 'FreeRTOSConfig.h' xxx\portasm.s
 
 解决办法：工程名右键 → Options... → Assembler → Preprocesser，在`Additional include directories`添加`FreeRTOSConfig.h`所在目录 —— `$PROJ_DIR$\..\User`。
 
-⑥编译，无错误，无警告。
+⑤编译，无错误，无警告。
 
-⑦测试，main.c，和Keil下测试代码的一致：
+⑥测试，main.c，和Keil下测试代码的一致：
 
 ```c
 #include "stm32f10x.h"                  // Device header
@@ -367,6 +408,7 @@ int main(void)
 }
 ```
 
+# 点亮LED
 
 
 
@@ -374,4 +416,13 @@ int main(void)
 
 
 
+
+
+
+
+
+
+
+
+# 启动流程
 

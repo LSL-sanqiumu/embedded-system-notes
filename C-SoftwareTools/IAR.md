@@ -2,7 +2,7 @@
 
 安装，注册。默认安装，更改一下安装路径即可，安装中的"USB driver"也可以勾选上。
 
-# 项目创建
+# 项目创建流程
 
 **0、新建工作空间，创建项目。**
 
@@ -37,9 +37,7 @@
 
 **4、烧录~测试。**
 
-# STM32F103C8
-
-## 固件库
+# STM32F10x固件库
 
 下载标准外设库：[STM32标准外设软件库 - 意法半导体STMicroelectronics](https://www.st.com/zh/embedded-software/stm32-standard-peripheral-libraries.html)
 
@@ -111,20 +109,99 @@ STM32F10x_StdPeriph_Lib_V3.5.0:
 
 这种目录结构将STM32F10x_StdPeriph_Driver的所有文件都放到了Library目录里，CoreSupport、DeviceSupport中需要的都放到Start目录里，User里则都一样。
 
+# IAR工程
 
+1. 新建工作空间，然后新建项目。
+2. 往项目新建组并加入文件。
+3. 工程配置：General Options、C/C++Complier、Linker、Debugger，有时还要配置Assembler（移植FreeRTOS时）。
+4. 解决错误和警告。
+5. make。
 
-## IAR工程
+**第二步**和Keil中新建组与加入文件是类似的操作，在选中项目名称那单击右键打开选项面板，找到add就能添加组了，往组添加文件也是单击右键然后找到add选择add files。
 
-1. 建立工作空间。
-2. 建立项目。
-3. 创建组并加入文件。
-4. 工程配置：General Options、C/C++Complier、Linker、Debugger，有时还要配置Assembler。
+**第三步：**
 
+- General Options：选择芯片型号和是否使用IAR的CMSIS，General Options中的Target中的Device，Library Configuration中的Use CMISIS5.7（通常都选用，选用后就不需要我们从固件库抽出来的core_cm3.c、core_cm3.h了，直接删除掉）。（如果不勾选Use CMISIS5.7，那就需要使用从固件库抽出来的core_cm3.c、core_cm3.h，但需要注释掉`core_cm3.h`里的第93行的`#include <intrinsics.h>`，）
 
+- C/C++Complier：头文件包含路径和宏定义，C/C++Complier中Preprocessor中的Additional include directories里添加包含路径，Defined symbols里添加宏。
+  ```c
+  // 这样表示项目工程保存路径的前一个路径下
+  $PROJ_DIR$\..\
+  // User
+  $PROJ_DIR$\..\User
+  ```
 
+  ```c
+  // STM32F103C8要添加的宏
+  USE_STDPERIPH_DRIVER
+  STM32F10X_MD
+  ```
 
+  
 
+- Linker：设置链接文件，默认使用IAR提供的，需要改成从STM32F10x固件库中提供的stm32f10x_flash.icf文件，Linker中Config中的Linker configuration file，勾选Override default并设置为`$PROJ_DIR$\..\Config\stm32f10x_flash.icf` 。
 
+- Debugger：选择调试器，Debugger中的Setup中的Driver选择好ST-LINK，Download中勾选Verify download。
+
+**第四步：**
+
+STM32F10x官方固件库的启动文件，在IAR编译器编译时会出现一些警告，解决办法就是，修改startup_stm32f10x_xd.s文件，通过编辑软件编辑该文件然后另存为另一个同名文件，然后使用这个文件替代掉原来的。修改内容如下：
+
+```c
+// 找到Reset_Handler这里，最后的SECTION修改 SECTION .text:CODE:REORDER:NOROOT(1)
+// SECTION .text:CODE:REORDER(1)  改为 SECTION .text:CODE:REORDER:NOROOT(1)
+Reset_Handler
+        LDR     R0, =SystemInit
+        BLX     R0
+        LDR     R0, =__iar_program_start
+        BX      R0
+
+        PUBWEAK NMI_Handler
+        SECTION .text:CODE:REORDER:NOROOT(1)
+```
+
+NOROOT表示如果符号没有被关联的时候是被优专化掉的， 如果想不被优化则使属用ROOT。
+
+**main.c，测试：**
+
+```c
+
+static void LED_GPIO_Init(void);
+static void delay(int n);
+ 
+int main(void)
+{
+    LED_GPIO_Init();
+    while(1){
+        GPIO_SetBits(GPIOC,GPIO_Pin_13);
+        delay(100);
+        GPIO_ResetBits(GPIOC,GPIO_Pin_13);
+        delay(100);
+    }
+
+}
+ 
+static void LED_GPIO_Init(void)
+{
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+   
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC,ENABLE);
+    GPIO_InitStruct.GPIO_Pin   = GPIO_Pin_13;
+    GPIO_InitStruct.GPIO_Mode  = GPIO_Mode_Out_PP;
+    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(GPIOC, &GPIO_InitStruct);
+}
+ 
+static void delay(int n)
+{
+ 
+    int i;
+   
+    while(n--){
+      for(i = 0;i<0xFFFF;i++);
+    }
+}
+```
 
 
 
