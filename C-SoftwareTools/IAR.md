@@ -203,11 +203,13 @@ static void delay(int n)
 }
 ```
 
+关于这个错误：
 
+![](images/IARError.png)
 
+错误分析：这是由于工程各个源文件之间无法关联，无法建立依赖关系，即无法建立 Generating browse information。
 
-
-
+解决方法：把IAR工程目录内List 和Obj目录删除，再重新编译项目即可。
 
 
 
