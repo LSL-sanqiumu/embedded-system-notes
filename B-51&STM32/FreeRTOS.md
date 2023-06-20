@@ -408,9 +408,81 @@ int main(void)
 }
 ```
 
+# 配置文件
+
+V9.0.0版本的FreeRTOS的默认配置文件`FreeRTOSConfig.h`的内容如下：
+
+```c
+#ifndef FREERTOS_CONFIG_H
+#define FREERTOS_CONFIG_H
+// 置1：RTOS使用抢占式调度器；置0：RTOS使用协作式调度器（时间片）
+#define configUSE_PREEMPTION		1
+// 置1：使用空闲钩子（Idle Hook类似于回调函数）；置0：忽略空闲钩子
+#define configUSE_IDLE_HOOK			0
+// 置1：使用时间片钩子（Tick Hook）；置0：忽略时间片钩子
+#define configUSE_TICK_HOOK			0
+// CPU内核时钟频率，也就是CPU指令执行频率，通常称为Fclk
+#define configCPU_CLOCK_HZ			( ( unsigned long ) 72000000 )	
+// RTOS系统节拍中断的频率。即一秒中断的次数，每次中断RTOS都会进行任务调度
+#define configTICK_RATE_HZ			( ( TickType_t ) 1000 )
+// 可使用的最大优先级
+#define configMAX_PRIORITIES		( 5 )
+// 空闲任务使用的堆栈大小
+#define configMINIMAL_STACK_SIZE	( ( unsigned short ) 128 )
+// 系统所有总的堆大小
+#define configTOTAL_HEAP_SIZE		( ( size_t ) ( 17 * 1024 ) )
+// 任务名字字符串长度
+#define configMAX_TASK_NAME_LEN		( 16 )
+// 启用可视化跟踪调试
+#define configUSE_TRACE_FACILITY	0
+// 系统节拍计数器变量数据类型，1表示为16位无符号整形，0表示为32位无符号整形
+#define configUSE_16_BIT_TICKS		0
+//空闲任务放弃CPU使用权给其他同优先级的用户任务
+#define configIDLE_SHOULD_YIELD		1
+
+/* Co-routine definitions. */
+// 启用协程，启用协程以后必须添加文件croutine.c
+#define configUSE_CO_ROUTINES 		0
+// 协程的有效优先级数目
+#define configMAX_CO_ROUTINE_PRIORITIES ( 2 )
+
+/* FreeRTOS可选函数配置选项 */
+#define INCLUDE_vTaskPrioritySet		1
+#define INCLUDE_uxTaskPriorityGet		1
+#define INCLUDE_vTaskDelete				1
+#define INCLUDE_vTaskCleanUpResources	0
+#define INCLUDE_vTaskSuspend			1
+#define INCLUDE_vTaskDelayUntil			1
+#define INCLUDE_vTaskDelay				1
+
+/* 系统可管理的最高中断优先级 */
+#define configKERNEL_INTERRUPT_PRIORITY 		255
+#define configMAX_SYSCALL_INTERRUPT_PRIORITY 	191 /* equivalent to 0xb0, or priority 11. */
+
+/* 中断最低优先级 */
+#define configLIBRARY_KERNEL_INTERRUPT_PRIORITY	15
+
+#endif /* FREERTOS_CONFIG_H */
+```
+
+全部配置可分为以下几部分：
+
+- 基础配置。
+- 内存申请有关的配置。
+- 与钩子函数有关的配置。
+- 与运行时间和任务状态收集有关的配置。
+- 与协程有关的配置。
+- 与软件定时器有关的配置。
+- 可选函数配置选项。
+- 与中断有关的配置选项。
+- 与中断服务函数有关的配置选项。
+- 使用Percepio Tracealyzer需要的配置。      
+
 
 
 # 关于多任务
+
+任务：在FreeRTOS中，线程（Thread）和任务（Task）的概念是相同的。每个任务就是一个线程，有着自己的一个程序执行路径。
 
 单任务系统：
 
@@ -423,19 +495,153 @@ int main(void)
 
 - 优点：简单，资源消耗少。
 
-多任务系统：宏观上，可以看成是并行地“同时”执行多个任务的系统。
+多任务系统：宏观上，可以看成是并行地“同时”执行多个任务的系统。（调度器会不断的启动、停止每一个任务，宏观看上去所有的任务都同时在执行）
 
+FreeRTOS任务的创建，有两种方式：
 
+- 静态创建：任务控制块和任务堆栈都事先定义好，即定义好全局变量（静态全局变量存在于SRAM中），任务删除时所占内存不会被释放，实际中使用较少。
 
+  > （线程占用内存不可释放）
 
+- 动态创建：动态创建任务控制块和任务堆栈，任务删除时占用的内存可释放，实际应用中使用最多。
 
-
-
-
+  > （线程占用内存可释放）
 
 # 点亮LED
 
-FreeRTOS中创建任务，有静态创建任务和动态创建任务这两种方式，
+## 静态单任务方式
+
+1、开启静态创建支持，在`FreeRTOSConfig.h`配置文件添加以下：
+
+```c
+// 开启静态支持，使用heap.c中的动态内存管理函数来自动的申请RAM
+#define configSUPPORT_STATIC_ALLOCATION 1
+// 设置定时器服务任务的任务堆栈大小
+#define configTIMER_TASK_STACK_DEPTH	      (configMINIMAL_STACK_SIZE*2)
+```
+
+2、main.c，创建静态单任务，具体步骤：
+
+1. 定义任务函数。
+2. 空闲任务与定时器任务堆栈函数的实现。（先定义好任务栈和任务控制块，再实现函数）
+3. 定义任务控制块和任务栈。
+4. 静态创建任务与启动。
+
+```c
+#include "stm32f10x.h"                  // Device header
+#include "OLED.h"
+#include "FreeRTOS.h"
+#include "task.h"
+
+// 静态内存中的初始化函数,初始化GPIO口
+static void LED_Init(void)
+{
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
+	
+	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_13;
+	GPIO_InitStructure.GPIO_Speed =  GPIO_Speed_50MHz;
+	GPIO_Init(GPIOC, &GPIO_InitStructure);
+}
+
+static TaskHandle_t AppTaskCreate_Handle;
+static TaskHandle_t LED_Task_Handle;
+
+/* 空闲任务任务堆栈 */  
+static StackType_t Idle_Task_Stack[configMINIMAL_STACK_SIZE];
+/* 定时器任务堆栈 */ 
+static StackType_t Timer_Task_Stack[configTIMER_TASK_STACK_DEPTH];
+/* 空闲任务控制块 */
+static StaticTask_t Idle_Task_TCB;
+/* 定时器任务控制块 */
+static StaticTask_t Timer_Task_TCB; 
+
+/* AppTaskCreate 任务任务堆栈 */
+static StackType_t AppTaskCreate_Stack[128];
+/* LED 任务堆栈 */
+static StackType_t LED_Task_Stack[128];
+/* AppTaskCreate 任务控制块 */
+static StaticTask_t AppTaskCreate_TCB;
+/* LED 任务控制块 */
+static StaticTask_t LED_Task_TCB;
+
+static void LED_Task(void* parameter);
+static void AppTaskCreate(void);
+void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer, 
+StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize);
+void vApplicationGetTimerTaskMemory(StaticTask_t **ppxTimerTaskTCBBuffer, 
+StackType_t **ppxTimerTaskStackBuffer, uint32_t *pulTimerTaskStackSize) ;
+
+int main(void) 
+{
+	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);//设置系统中断优先级分组4	
+	OLED_Init();
+    LED_Init();
+	OLED_ShowString(1,1,"FreeRTOSv9.0.0");
+	/* 静态创建任务 start */
+    AppTaskCreate_Handle= xTaskCreateStatic((TaskFunction_t)AppTaskCreate,
+    (const char*)"AppTaskCreate",(uint32_t)128,(void*)NULL,(UBaseType_t)3,
+    (StackType_t*)AppTaskCreate_Stack,
+    (StaticTask_t*)&AppTaskCreate_TCB);
+    if (NULL != AppTaskCreate_Handle)
+    vTaskStartScheduler();
+    /* 静态创建任务 end */
+	while(1);
+}
+// 定义任务函数
+static void LED_Task(void* parameter)
+{
+    while(1)
+    {
+        GPIO_SetBits(GPIOC, GPIO_Pin_13);
+        vTaskDelay(500);
+        GPIO_ResetBits(GPIOC, GPIO_Pin_13);
+		vTaskDelay(500);
+    }
+}
+/* 用于创建任务 */
+static void AppTaskCreate(void)
+{
+    taskENTER_CRITICAL(); //进入临界区
+    /* 创建 LED_Task 任务 */
+    LED_Task_Handle = xTaskCreateStatic((TaskFunction_t)LED_Task, //任务函数
+    (const char*)"LED_Task",//任务名称
+    (uint32_t)128, //任务堆栈大小
+    (void* )NULL, //传递给任务函数的参数
+    (UBaseType_t)4, //任务优先级
+    (StackType_t*)LED_Task_Stack,//任务堆栈
+    (StaticTask_t*)&LED_Task_TCB);//任务控制块
+    if (NULL != LED_Task_Handle) /* 创建成功 */
+        OLED_ShowString(2,1,"success");
+    else
+        OLED_ShowString(2,1,"fail");
+    
+    vTaskDelete(AppTaskCreate_Handle); //删除 AppTaskCreate 任务
+    
+    taskEXIT_CRITICAL(); //退出临界区
+}
+/* 空闲任务堆栈函数实现 */
+void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer, 
+StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize) 
+{ 
+    *ppxIdleTaskTCBBuffer = &Idle_Task_TCB;           /* 任务控制块内存 */ 
+    *ppxIdleTaskStackBuffer = Idle_Task_Stack;        /* 任务堆栈内存 */ 
+    *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE; /* 任务堆栈大小 */ 
+}
+// 定时器任务堆栈函数实现
+void vApplicationGetTimerTaskMemory(StaticTask_t **ppxTimerTaskTCBBuffer, 
+StackType_t **ppxTimerTaskStackBuffer, uint32_t *pulTimerTaskStackSize) 
+{ 
+    *ppxTimerTaskTCBBuffer=&Timer_Task_TCB;             /* 任务控制块内存 */ 
+    *ppxTimerTaskStackBuffer=Timer_Task_Stack;          /* 任务堆栈内存 */ 
+    *pulTimerTaskStackSize=configTIMER_TASK_STACK_DEPTH;/* 任务堆栈大小 */ 
+}
+```
+
+
+
+## 动态单任务方式
 
 
 

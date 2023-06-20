@@ -1,6 +1,6 @@
 
 
-Opening&Sharing    imaging&creating     freedom    meet top
+Opening&Sharing    imaging&creating     freedom    meet top   自由、开放式平台
 
 # 1.训练坚持
 
