@@ -139,6 +139,7 @@ main                // 运行可执行文件main
 **1、变量声明与赋值：**以int类型变量为例（建议变量都显式初始化）
 
 ```c
+// 声明：创建并标记存储空间，如果顺便初始化，则还为存储空间指定了初始值
 #include <stdio.h>
 int main(){
 	/* 数据类型  变量名  =  值; */
@@ -189,7 +190,7 @@ C中的基本数据类型：整型、浮点型、字符型、布尔型、可移�
 
 ### 整型
 
-1、int类型取值范围：取值范围具体由计算机系统决定，但通常int类型都是32位存储。**C规定int的取值范围最小为-32768～32767（即16位存储）。**
+1、int类型取值范围：取值范围具体由计算机系统决定，但通常int类型都是32位存储。**C规定int的取值范围最小为-32768～32767（即16位存储）。**（整数的默认类型）
 
 ```c
 // 打印int值：
@@ -215,14 +216,15 @@ int main(){
 }
 ```
 
-3、C中的整型以有无符号分类：
+3、C中的整型以有无符号分类，可分为：
 
 - 有符号整型：short、short int、int、long、long long、long long int。（也可以使用signed来强调这是有符号类型）
 - 无符号整型：加上unsigned关键字即可。
+- 补充（为了适应不同机器的规定：short——占用存储空间不能多于int；long——占用存储空间不能少于int；long long —— 至少64位，为了存储64位整数才引入的）
 
-常见的存储：short——16位，int——32位，long——32位，long long——64位。
+目前常见的存储：short——16位，int——16位或32位，long——32位，long long——64位。
 
-通常的整数数值都看作是int型，如果数值超了int的范围，编译器会尝试使用unsigned int，如果还不够大， 编译器会依次使用long、 unsigned long、 long  long、和unsigned long long类型。
+**通常的整数数值都看作是int型**，如果数值超了int的范围，编译器会尝试使用unsigned int，如果还不够大， 编译器会依次使用long、 unsigned long、 long  long、和unsigned long long类型。
 
 4、数值后缀：后缀的意义在于**明确声明字面量的类型，而不是使用该类字面量的默认类型**。
 
@@ -353,19 +355,23 @@ int main(){
 2. 使用转义序列。
 3. 用十六进制形式表示字符常量 。（例如&，`char a = '\x026';`）
 
-无符号与有符号，unsigned char、signed char。（8位，-128~127,0~255）
+无符号与有符号，unsigned char、signed char。（8位，有符号 -128~127，无符号 0~255）
 
 
 
 ### 布尔值
 
-布尔值：`_Bool`，存储1或0。
+C99标准添加的布尔值类型，仅占用1位存储空间，可以看作是特殊的整型。
+
+布尔值：`_Bool`，存储0和1。
+
+`#include <stdbool.h>`内将`_Bool`宏定义为bool，将1宏定义为true，将0宏定义为false。
 
 
 
 ### 可移植类型
 
-C99 新增了两个头文件 stdint.h 和 inttypes.h， 以确保C语言的类型在各系统中的功能相同。
+C99 新增了两个头文件 `stdint.h` 和 `inttypes.h`， 以确保C语言的类型在各系统中的功能相同，利用了`typedef`和`define`。
 
 ```c
 #include <stdio.h>
@@ -392,12 +398,14 @@ C中用char型数组来存储字符串，存储的字符串会在末尾自动加
 #include <stdio.h>
 int main(){
     char s[10] = "一九九八";  // 一个中文占用两个字节
-    printf("%s",s);
+    char str[6] = {'h','e','l','l','o','\0'};
+    printf("%s\n",s);
+    printf(str);
     return 0;
 }
 ```
 
-strlen(str)函数：返回数组的有效存储个数，不包括空字符（不是指空格，空格也是一个字符），该函数的原型在string.h头文件中声明，返回值为size_t（即unsigned int）。
+`strlen(str)`函数：返回数组的有效存储个数，不包括空字符（不是指空格，空格也是一个字符），该函数的原型在string.h头文件中声明，返回值为size_t（即unsigned int）。
 
 ```c
 #include <stdio.h>
@@ -572,9 +580,10 @@ int main(){
 
 1. 表达式中：无论是unsigned还是signed的char和short都会被自动转换成int， 如有必要会被转换成unsigned int（如果short与int的大小相同， unsigned short就比int大， 这种情况下， unsigned short会被转换成unsigned int） 。 在K&R那时的C中， float会被自动转换成double（目前的C不是这样） 。 （从较小类型转换为较大类型）
 2. 两种类型运算：两个值会被分别转换成两种类型的更高级别。
-3. 类型级别（高 ===> 低 ）：long double、 double、 float、 unsignedlong、long、 long long、 unsigned long、 long、 unsigned int、 int。  （例外：当 long 和 int 的大小相同时， unsigned int比long的级别高  ）
+3. 类型级别（高 ===> 低 ）：long double、 double、 float、 unsigned long long、 long long、 unsigned long、 long、 unsigned int、 int。  （例外：当 long 和 int 的大小相同时， unsigned int比long的级别高；short、int大小一致时，unsigned short就比int的级别高，unsigned short 就会被转为unsigned int ）
 4. 赋值表达式中：计算的最终结果会被转换成被赋值变量的类型。   
-5. ~~函数传参时：char和short被转换成int， float被转换成double。~~
+5. ~~函数传参时：char和short被转换成int， float被转换成double。（不过函数原型会覆盖类型的自动升级）~~
+6. Java中，级别高的数据类型只能通过手动强制转换转换为低级别类型的；而C中高 → 低、低 → 高都可以是隐式转换的，当然，手动实用强制转换提高可读性。
 
 强制类型转换：使用`(type)`，比如`int num = (int)12.34;`。
 
@@ -587,6 +596,18 @@ int main(){
 `&`：取地址运算符。
 
 `*`：解引用运算符，后跟指针或地址，会给出存储在指针指向地址上的值。（指针的值是一个地址，大部分系统中这个地址值用无符号整数表示）
+
+加、减、乘、除、取余、自增、自减。
+
+三元运算符、逻辑运算符、比较运算符。
+
+sizeof运算符：以字节为单位返回运算对象的大小（运算对象可以是变量名或类型，如果是类型则要加上圆括号）
+
+```c
+int num = 12;
+size_t intsize = sizeof(int);
+printf("%zd",intsize);
+```
 
 # 数组
 
@@ -1297,7 +1318,7 @@ static double beta(int, int);     // 内部函数
 
 exit()、malloc()和free()的原型都在 stdlib.h 头文件中。  
 
-**1、malloc()函数：**
+**1、malloc()函数：**（memory allocation （内存分配））
 
 - 参数：该函数接受一个参数—— 所需的内存字节数，malloc()函数会找到合适的空闲内存块，但不会赋名。
 
@@ -1347,7 +1368,7 @@ void gobble(double ar[], int n)
 }
 ```
 
-**3、分配内存还可以使用calloc()  ：**
+**3、分配内存还可以使用calloc()  ：**（contiguous allocation —— 连续分配，Allocates an array in memory with elements initialized to 0.）
 
 ```c
 long * newmem;
@@ -1358,6 +1379,10 @@ free(newmem);
 ```
 
 calloc()的特性：会把块中所有位都设置为0。
+
+cma，全称（contiguous memory allocation），**在内存初始化时预留一块连续内存**，可以在内存碎片化严重时通过调用**dma_alloc_contiguous**接口并且gfp指定为__GFP_DIRECT_RECLAIM从预留的那块连续内存中分配大块连续内存。
+
+
 
 ### 动态分配内存与数组
 
